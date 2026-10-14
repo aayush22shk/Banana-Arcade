@@ -1,0 +1,9 @@
+# [VERSION CONTROL] Standard Git Ignore configuration for Node.js & SQLite
+node_modules/
+database.db
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
