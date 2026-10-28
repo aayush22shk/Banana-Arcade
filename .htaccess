@@ -1,0 +1,26 @@
+# ============================================================================
+# [VERSION CONTROL]: Banana Arcade - Apache URL Rewrite Configuration
+# Architecture: Apache mod_rewrite (XAMPP)
+# Purpose: Routes API requests to PHP backend and serves static frontend assets
+# ============================================================================
+
+RewriteEngine On
+
+# Pass Authorization header to PHP (required for JWT Bearer tokens on Apache)
+RewriteCond %{HTTP:Authorization} ^(.*)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+# Route all API requests to the PHP API router
+RewriteRule ^api/?(.*)$ api/index.php [QSA,L]
+
+# Serve static files from public/ directory
+RewriteRule ^css/(.*)$ public/css/$1 [L]
+RewriteRule ^js/(.*)$ public/js/$1 [L]
+
+# Root request serves the SPA entry point
+RewriteRule ^$ public/index.html [L]
+
+# SPA fallback: serve index.html for non-file, non-directory requests
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ public/index.html [L]

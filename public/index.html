@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banana Arcade | University Full-Stack Software Engineering</title>
+  <meta name="description" content="Banana Arcade - Production-ready academic full-stack web application featuring University Banana API interoperability, JWT Virtual Identity, SQLite persistence, and an event-driven game engine.">
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍌</text></svg>">
+</head>
+<body>
+
+  <!-- ======================================================================
+       HEADER: Branding & Virtual Identity Navigation
+       ====================================================================== -->
+  <header class="header-container">
+    <a href="#" class="brand-section" data-view-target="game">
+      <span class="brand-logo-icon">🍌</span>
+      <div>
+        <h1 class="brand-title">BANANA ARCADE</h1>
+        <div class="brand-subtitle">University Engineering Project</div>
+      </div>
+    </a>
+
+    <!-- SPA Navigation Links -->
+    <nav class="nav-links">
+      <button class="nav-link active" data-view-target="game" id="nav-btn-game">🎮 Play Game</button>
+      <button class="nav-link" data-view-target="leaderboard" id="nav-btn-leaderboard">🏆 Leaderboard</button>
+      <button class="nav-link" data-view-target="auth" id="nav-btn-auth">👤 Account</button>
+    </nav>
+
+    <!-- Header Actions & Virtual Identity Session Badge -->
+    <div class="header-actions">
+      <!-- Sound FX Toggle Button -->
+      <button id="btn-toggle-sound" class="btn-icon" title="Toggle Sound Effects">🔊 Sound: ON</button>
+
+      <!-- [VIRTUAL IDENTITY] Guest State View -->
+      <div id="nav-guest" class="guest-actions">
+        <button class="btn-icon" data-view-target="auth">🔑 Login / Register</button>
+      </div>
+
+      <!-- [VIRTUAL IDENTITY] Logged-in Player Badge -->
+      <div id="nav-user" class="user-identity-badge hidden">
+        <div class="avatar-circle" id="player-avatar">P</div>
+        <div class="user-identity-info">
+          <span class="identity-name" id="badge-username">Player</span>
+          <span class="identity-pb" id="badge-highscore">PB: 0 pts</span>
+        </div>
+        <button id="btn-logout" class="btn-icon btn-logout" title="Sign out of Virtual Identity">Exit</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================================================================
+       MAIN CONTENT CONTAINER
+       ====================================================================== -->
+  <main class="main-wrapper">
+
+    <!-- [INTEROPERABILITY & VERSION CONTROL]: University Assignment Compliance Banner -->
+    <section class="compliance-banner">
+      <div class="compliance-left">
+        <span class="status-beacon"></span>
+        <span class="compliance-text">
+          <strong>Mandatory University Service:</strong>
+          Banana API Interoperability Active (<code>https://marcconrad.com/uob/banana/api.php?out=json</code>)
+        </span>
+      </div>
+      <div class="compliance-tags">
+        <span class="tag-badge">Node.js + Express</span>
+        <span class="tag-badge">SQLite3 DB</span>
+        <span class="tag-badge">JWT Identity</span>
+        <span class="tag-badge">Event-Driven</span>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 1: GAME SECTION (Pre-game & Active Game Engine)
+         ==================================================================== -->
+    <section id="view-game" class="view-section">
+      <div class="game-container">
+
+        <!-- PRE-GAME INTRO CARD -->
+        <div id="screen-pregame" class="pregame-card">
+          <h2 class="arcade-hero-title">READY PLAYER ONE?</h2>
+          <p class="arcade-hero-desc">
+            Test your math speed against the clock! Puzzles are generated dynamically in real-time by the 
+            <strong>University Banana Web Service</strong>. You have 30 seconds to solve as many banana equations as you can.
+          </p>
+
+          <div class="game-rules-grid">
+            <div class="rule-box">
+              <div class="rule-icon">⏱️</div>
+              <div class="rule-title">30-Second Timer</div>
+              <div class="rule-desc">Fast-paced countdown loop triggered when you hit Start.</div>
+            </div>
+            <div class="rule-box">
+              <div class="rule-icon">🔥</div>
+              <div class="rule-title">Combo Multipliers</div>
+              <div class="rule-desc">Consecutive right answers yield 2x, 3x, and 5x point bonuses!</div>
+            </div>
+            <div class="rule-box">
+              <div class="rule-icon">⌨️</div>
+              <div class="rule-title">Quick Controls</div>
+              <div class="rule-desc">Tap the 0-9 keypad or press number keys on your physical keyboard.</div>
+            </div>
+          </div>
+
+          <button id="btn-start-game" class="btn-arcade-start">START GAME</button>
+        </div>
+
+        <!-- ACTIVE GAME SCREEN -->
+        <div id="screen-active-game" class="hidden">
+          
+          <!-- Game Heads-Up Display (HUD) -->
+          <div class="game-hud">
+            <!-- 30-Second Countdown Timer -->
+            <div class="hud-item timer-box">
+              <div class="timer-header">
+                <span class="hud-label">TIME REMAINING</span>
+                <span id="hud-timer-value" class="timer-number">30s</span>
+              </div>
+              <div class="timer-track">
+                <div id="hud-timer-progress" class="timer-progress normal"></div>
+              </div>
+            </div>
+
+            <!-- Score Counter -->
+            <div class="hud-item">
+              <span class="hud-label">SCORE</span>
+              <span id="hud-score-value" class="hud-value">0</span>
+            </div>
+
+            <!-- Streak & Combo Multiplier -->
+            <div class="hud-item">
+              <span class="hud-label">STREAK</span>
+              <span id="hud-streak-value" class="streak-badge">0 🔥 (1x)</span>
+            </div>
+
+            <!-- Puzzles Solved Counter -->
+            <div class="hud-item">
+              <span class="hud-label">SOLVED</span>
+              <span id="hud-solved-value" class="hud-value">0</span>
+            </div>
+          </div>
+
+          <!-- CRT Monitor: University Banana API Puzzle Viewer -->
+          <div id="crt-monitor" class="crt-monitor" style="margin-top: 1rem;">
+            <!-- Real-time Feedback Banner -->
+            <div id="feedback-banner" class="feedback-banner"></div>
+
+            <div class="crt-header">
+              <span class="crt-title">BANANA PUZZLE TERMINAL</span>
+              <span id="api-status-badge" class="api-badge online">University Banana API: Active</span>
+            </div>
+
+            <div class="puzzle-stage">
+              <div id="puzzle-loader" class="puzzle-loader">
+                <div class="spinner"></div>
+                <span>Fetching dynamic puzzle from University API...</span>
+              </div>
+              <img id="puzzle-image" class="puzzle-image opacity-0" src="" alt="University Banana Math Puzzle" />
+            </div>
+          </div>
+
+          <!-- Interactive GUI Controls & Numeric Keypad -->
+          <div class="controls-layout">
+            <!-- Answer Input & Actions -->
+            <div class="input-entry-section">
+              <div class="input-group">
+                <label for="puzzle-answer-input" class="input-label">Your Solution (0-9):</label>
+                <div class="display-input-wrapper">
+                  <input 
+                    type="number" 
+                    id="puzzle-answer-input" 
+                    class="puzzle-input" 
+                    placeholder="?" 
+                    min="0" 
+                    max="9" 
+                    autocomplete="off"
+                    aria-label="Puzzle answer digit"
+                  />
+                </div>
+              </div>
+
+              <div class="action-buttons-row">
+                <button id="btn-submit-answer" class="btn-submit-answer">SUBMIT [↵ Enter]</button>
+                <button id="btn-skip-puzzle" class="btn-skip-puzzle" title="Skip puzzle (-5 points penalty)">Skip (-5)</button>
+              </div>
+            </div>
+
+            <!-- [EVENT-DRIVEN PROGRAMMING] Interactive On-Screen Keypad -->
+            <div class="keypad-container">
+              <div class="keypad-header">Touch / Click Keypad (0-9)</div>
+              <div id="arcade-keypad" class="keypad-grid">
+                <button class="keypad-btn" data-action="digit" data-value="1">1</button>
+                <button class="keypad-btn" data-action="digit" data-value="2">2</button>
+                <button class="keypad-btn" data-action="digit" data-value="3">3</button>
+                <button class="keypad-btn" data-action="digit" data-value="4">4</button>
+                <button class="keypad-btn" data-action="digit" data-value="5">5</button>
+                <button class="keypad-btn" data-action="digit" data-value="6">6</button>
+                <button class="keypad-btn" data-action="digit" data-value="7">7</button>
+                <button class="keypad-btn" data-action="digit" data-value="8">8</button>
+                <button class="keypad-btn" data-action="digit" data-value="9">9</button>
+                <button class="keypad-btn action-btn clear-btn" data-action="clear">CLR</button>
+                <button class="keypad-btn" data-action="digit" data-value="0">0</button>
+                <button class="keypad-btn action-btn submit-key-btn" data-action="submit">GO</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 2: LEADERBOARD SECTION (Persistent Global Top 10)
+         ==================================================================== -->
+    <section id="view-leaderboard" class="view-section hidden">
+      <div class="leaderboard-card">
+        <div class="leaderboard-header">
+          <div>
+            <h2 class="view-heading">HALL OF FAME</h2>
+            <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">Top 10 Global High Scores (Stored in SQLite3)</p>
+          </div>
+          <button class="btn-icon" onclick="App.loadLeaderboard()">🔄 Refresh</button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="arcade-table">
+            <thead>
+              <tr>
+                <th class="rank-col">Rank</th>
+                <th>Player Identity</th>
+                <th class="score-col">High Score</th>
+                <th>Puzzles Solved</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-tbody">
+              <!-- Dynamically populated via SQLite API -->
+            </tbody>
+          </table>
+          <div id="leaderboard-empty" class="empty-state hidden">
+            <p>No high scores recorded yet! Be the first player to submit a score.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 3: AUTHENTICATION SECTION (Virtual Identity Management)
+         ==================================================================== -->
+    <section id="view-auth" class="view-section hidden">
+      <div class="auth-wrapper">
+        <div class="auth-card">
+          <!-- Auth Tabs -->
+          <div class="auth-tabs">
+            <button id="tab-login" class="auth-tab active">Player Login</button>
+            <button id="tab-register" class="auth-tab">Register New Identity</button>
+          </div>
+
+          <!-- Feedback message -->
+          <div id="auth-message" class="message-box hidden"></div>
+
+          <!-- Form 1: Login -->
+          <form id="form-login">
+            <div class="form-group">
+              <label for="login-username">Player Username</label>
+              <input type="text" id="login-username" class="form-input" placeholder="e.g. PixelHero" required autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-auth-submit">ENTER ARCADE</button>
+          </form>
+
+          <!-- Form 2: Register -->
+          <form id="form-register" class="hidden">
+            <div class="form-group">
+              <label for="register-username">Choose Username</label>
+              <input type="text" id="register-username" class="form-input" placeholder="3-20 characters" required autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="register-password">Password (min 6 chars)</label>
+              <input type="password" id="register-password" class="form-input" placeholder="••••••••" required autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label for="register-confirm">Confirm Password</label>
+              <input type="password" id="register-confirm" class="form-input" placeholder="••••••••" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn-auth-submit">CREATE VIRTUAL IDENTITY</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================================================================
+       MODAL: GAME OVER & LEADERBOARD PERSISTENCE
+       ====================================================================== -->
+  <div id="modal-gameover" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header-icon">🏁</div>
+      <h3 class="modal-title">TIME'S UP!</h3>
+      <p class="modal-subtitle">Great arcade run! Here is your performance summary:</p>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-label">Final Score</span>
+          <span id="modal-final-score" class="stat-value highlight">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Solved</span>
+          <span id="modal-puzzles-solved" class="stat-value">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">Accuracy</span>
+          <span id="modal-accuracy" class="stat-value">0%</span>
+        </div>
+      </div>
+
+      <!-- Persistence / High Score status message -->
+      <div id="modal-leaderboard-status" class="status-text"></div>
+
+      <div class="modal-actions">
+        <button id="btn-restart-game" class="btn-restart">PLAY AGAIN</button>
+        <button id="btn-close-gameover" class="btn-dismiss">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       FOOTER
+       ====================================================================== -->
+  <footer class="footer-container">
+    <p>
+      <strong>Banana Arcade</strong> &bull; University Academic Software Engineering Project.
+      Integrated with official <a href="https://marcconrad.com/uob/banana/api.php?out=json" target="_blank" rel="noopener noreferrer">University Banana API</a>.
+    </p>
+  </footer>
+
+  <!-- Modular Client JavaScript -->
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

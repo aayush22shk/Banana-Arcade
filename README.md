@@ -22,10 +22,10 @@ A clean, modular, and production-ready full-stack arcade web application built f
 ## 🎯 Assignment & Specification Overview
 
 - **Project Title:** Banana Arcade
-- **Backend Stack:** Node.js, Express.js (RESTful Architecture)
+- **Backend Stack:** PHP 8+ (RESTful MVC Architecture under Apache / XAMPP)
 - **Frontend Stack:** HTML5, CSS3 (Modern Arcade / Cyberpunk Theme), Vanilla JavaScript (ES6+, DOM Manipulation, Fetch API, Web Audio API)
-- **Database:** SQLite3 (`database.db` via `sqlite3` driver)
-- **Authentication:** `bcryptjs` (Password Hashing, Salt Rounds = 10) & `jsonwebtoken` (JWT Virtual Identity Sessions)
+- **Database:** MySQL (`banana_arcade` database via PDO driver, XAMPP default)
+- **Authentication:** `password_hash`/`password_verify` (bcrypt, cost = 10) & pure PHP `JWT` (HMAC-SHA256 Virtual Identity Sessions)
 - **External Web Service:** University-Provided Banana API (`https://marcconrad.com/uob/banana/api.php?out=json`)
 
 ---
@@ -123,36 +123,30 @@ banana-arcade/
 
 ---
 
-## 🚀 Installation & Setup Instructions
+## 🚀 Installation & Setup Instructions (XAMPP)
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (Version 18.x, 20.x, or 22.x recommended)
-- `npm` (bundled with Node.js)
+- [XAMPP](https://www.apachefriends.org/) with Apache, PHP 8+, and MySQL running
 
 ### 1. Clone or Open Project
-```bash
-cd BananaAPI
-```
-
-### 2. Install Dependencies
-```bash
-npm install
-```
-
-### 3. Run the Application
-To start the production server:
-```bash
-npm start
-```
-Or to run in development mode with live watch:
-```bash
-npm run dev
-```
-
-### 4. Open in Browser
-Navigate to:
 ```text
-http://localhost:3000
+C:\xampp\htdocs\BananaAPI
+```
+
+### 2. Start Services in XAMPP
+1. Open **XAMPP Control Panel**.
+2. Start **Apache** and **MySQL**.
+
+### 3. Database Initialization
+Database and tables are auto-created on first run, or navigate to:
+```text
+http://localhost/BananaAPI/database/setup.php
+```
+
+### 4. Play the Game
+Open your web browser and navigate to:
+```text
+http://localhost/BananaAPI/
 ```
 
 ---
