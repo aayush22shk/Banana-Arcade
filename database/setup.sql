@@ -12,11 +12,12 @@ CREATE DATABASE IF NOT EXISTS banana_arcade
 
 USE banana_arcade;
 
--- [VIRTUAL IDENTITY] Users Table: Stores player credentials with bcrypt hash
+-- [VIRTUAL IDENTITY] Users Table: Stores player credentials and avatar with bcrypt hash
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
+    avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -25,6 +26,7 @@ CREATE TABLE IF NOT EXISTS scores (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     username VARCHAR(50) NOT NULL,
+    avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
     score INT NOT NULL,
     puzzles_solved INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

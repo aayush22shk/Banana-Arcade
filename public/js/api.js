@@ -54,6 +54,7 @@ const Api = {
 
     try {
       const response = await fetch(url, {
+        credentials: 'include', // Automatically send and receive Cookies & PHP Sessions
         ...options,
         headers
       });
@@ -71,17 +72,27 @@ const Api = {
     }
   },
 
+  /**
+   * Helper to retrieve a client-readable cookie value
+   */
+  getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  },
+
   // ==========================================
   // [VIRTUAL IDENTITY] Authentication Services
   // ==========================================
   auth: {
     /**
-     * Registers a new virtual player identity
+     * Registers a new virtual player identity with selected avatar
      */
-    async register(username, password) {
+    async register(username, password, avatar = 'avatar-1') {
       const res = await Api.request('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ username, password })
+        body: JSON.stringify({ username, password, avatar })
       });
       if (res.token) Api.setToken(res.token);
       return res;
@@ -100,7 +111,19 @@ const Api = {
     },
 
     /**
-     * Fetches current active virtual identity and statistics
+     * Updates player avatar in database and session
+     */
+    async updateAvatar(avatar) {
+      const res = await Api.request('/auth/avatar', {
+        method: 'POST',
+        body: JSON.stringify({ avatar })
+      });
+      if (res.token) Api.setToken(res.token);
+      return res;
+    },
+
+    /**
+     * Fetches current active virtual identity, avatar and statistics
      */
     async getMe() {
       return await Api.request('/auth/me', {
@@ -109,10 +132,18 @@ const Api = {
     },
 
     /**
-     * Terminates the active virtual identity session
+     * Terminates the active virtual identity session on both server and client
      */
-    logout() {
-      Api.clearToken();
+    async logout() {
+      try {
+        await Api.request('/auth/logout', {
+          method: 'POST'
+        });
+      } catch (e) {
+        console.warn('Logout API call failed, clearing local state:', e);
+      } finally {
+        Api.clearToken();
+      }
     }
   },
 
@@ -154,7 +185,7 @@ const Api = {
     },
 
     /**
-     * [VIRTUAL IDENTITY] Submits high score to persistent SQLite database
+     * [VIRTUAL IDENTITY] Submits high score to persistent MySQL database
      */
     async submit(score, puzzlesSolved) {
       return await Api.request('/leaderboard/submit', {

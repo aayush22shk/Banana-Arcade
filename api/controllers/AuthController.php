@@ -20,8 +20,7 @@ class AuthController
     }
 
     /**
-     * [VIRTUAL IDENTITY] Register a new user
-     * Hashes passwords with bcrypt (cost factor = 10) and stores credentials in MySQL.
+     * [VIRTUAL IDENTITY] Register a new player with chosen Avatar, Session & Cookies
      * Route: POST /api/auth/register
      */
     public function register(): void
@@ -30,6 +29,12 @@ class AuthController
             $data     = json_decode(file_get_contents('php://input'), true);
             $username = $data['username'] ?? '';
             $password = $data['password'] ?? '';
+            $avatar   = $data['avatar'] ?? 'avatar-1';
+
+            // Validate avatar selection (10 arcade avatars)
+            if (!preg_match('/^avatar-(10|[1-9])$/', $avatar)) {
+                $avatar = 'avatar-1';
+            }
 
             // Input validation
             if (empty($username) || empty($password)) {
@@ -74,23 +79,55 @@ class AuthController
             // [VIRTUAL IDENTITY] Secure password hashing using bcrypt (cost = 10)
             $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 10]);
 
-            // Persist new user in MySQL database
-            $newUser = $this->userModel->create($trimmedUsername, $hashedPassword);
+            // Persist new user in MySQL database with chosen avatar
+            $newUser = $this->userModel->create($trimmedUsername, $hashedPassword, $avatar);
 
             // [VIRTUAL IDENTITY] Issue signed JSON Web Token (JWT)
             $token = JWT::encode([
                 'id'       => $newUser['id'],
-                'username' => $newUser['username']
+                'username' => $newUser['username'],
+                'avatar'   => $newUser['avatar']
             ], 7 * 24 * 60 * 60); // 7 days expiry
+
+            // [VIRTUAL IDENTITY]: Initialize Native PHP Session
+            if (session_status() === PHP_SESSION_NONE) {
+                @session_start();
+            }
+            @session_regenerate_id(true);
+            $_SESSION['user_id']   = $newUser['id'];
+            $_SESSION['username']  = $newUser['username'];
+            $_SESSION['avatar']    = $newUser['avatar'];
+            $_SESSION['logged_in'] = true;
+            $_SESSION['auth_time'] = time();
+
+            // [VIRTUAL IDENTITY]: Set HTTP Cookies
+            setcookie('banana_session', $token, [
+                'expires'  => time() + 7 * 86400,
+                'path'     => '/',
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            setcookie('banana_avatar', $newUser['avatar'], [
+                'expires'  => time() + 7 * 86400,
+                'path'     => '/',
+                'httponly' => false,
+                'samesite' => 'Lax'
+            ]);
 
             http_response_code(201);
             echo json_encode([
                 'success' => true,
-                'message' => 'Player registered successfully!',
+                'message' => 'Player registered successfully! Virtual identity created.',
                 'token'   => $token,
+                'session' => [
+                    'active'    => true,
+                    'sessionId' => session_id()
+                ],
                 'user'    => [
                     'id'       => $newUser['id'],
-                    'username' => $newUser['username']
+                    'username' => $newUser['username'],
+                    'avatar'   => $newUser['avatar'],
+                    'stats'    => ['high_score' => 0, 'games_played' => 0, 'total_puzzles' => 0]
                 ]
             ]);
 
@@ -105,8 +142,7 @@ class AuthController
     }
 
     /**
-     * [VIRTUAL IDENTITY] Login an existing user
-     * Authenticates user credentials and returns a signed JWT token.
+     * [VIRTUAL IDENTITY] Login an existing user, initializing Session & Cookies
      * Route: POST /api/auth/login
      */
     public function login(): void
@@ -138,7 +174,7 @@ class AuthController
                 return;
             }
 
-            // [VIRTUAL IDENTITY] Verify bcrypt hashed password against supplied plaintext
+            // [VIRTUAL IDENTITY] Verify bcrypt hashed password
             if (!password_verify($password, $user['password'])) {
                 http_response_code(401);
                 echo json_encode([
@@ -148,13 +184,41 @@ class AuthController
                 return;
             }
 
+            $userAvatar = $user['avatar'] ?? 'avatar-1';
+
             // [VIRTUAL IDENTITY] Generate active session JWT token
             $token = JWT::encode([
                 'id'       => $user['id'],
-                'username' => $user['username']
-            ], 7 * 24 * 60 * 60); // 7 days expiry
+                'username' => $user['username'],
+                'avatar'   => $userAvatar
+            ], 7 * 24 * 60 * 60);
 
-            // Fetch player's personal high score
+            // [VIRTUAL IDENTITY]: Initialize Native PHP Session
+            if (session_status() === PHP_SESSION_NONE) {
+                @session_start();
+            }
+            @session_regenerate_id(true);
+            $_SESSION['user_id']   = $user['id'];
+            $_SESSION['username']  = $user['username'];
+            $_SESSION['avatar']    = $userAvatar;
+            $_SESSION['logged_in'] = true;
+            $_SESSION['auth_time'] = time();
+
+            // [VIRTUAL IDENTITY]: Set HTTP Cookies
+            setcookie('banana_session', $token, [
+                'expires'  => time() + 7 * 86400,
+                'path'     => '/',
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+            setcookie('banana_avatar', $userAvatar, [
+                'expires'  => time() + 7 * 86400,
+                'path'     => '/',
+                'httponly' => false,
+                'samesite' => 'Lax'
+            ]);
+
+            // Fetch player's personal high score & stats
             $stats = $this->scoreModel->getUserHighScore($user['id']);
 
             http_response_code(200);
@@ -162,9 +226,14 @@ class AuthController
                 'success' => true,
                 'message' => 'Authentication successful. Welcome to Banana Arcade!',
                 'token'   => $token,
+                'session' => [
+                    'active'    => true,
+                    'sessionId' => session_id()
+                ],
                 'user'    => [
                     'id'       => $user['id'],
                     'username' => $user['username'],
+                    'avatar'   => $userAvatar,
                     'stats'    => $stats
                 ]
             ]);
@@ -180,13 +249,122 @@ class AuthController
     }
 
     /**
+     * [VIRTUAL IDENTITY] Terminate session & clear cookies on logout
+     * Route: POST /api/auth/logout
+     */
+    public function logout(): void
+    {
+        try {
+            // Clear native PHP session
+            if (session_status() === PHP_SESSION_NONE) {
+                @session_start();
+            }
+            $_SESSION = [];
+            if (ini_get("session.use_cookies")) {
+                $params = session_get_cookie_params();
+                setcookie(session_name(), '', time() - 42000,
+                    $params["path"], $params["domain"],
+                    $params["secure"], $params["httponly"]
+                );
+            }
+            @session_destroy();
+
+            // Expire HTTP cookies
+            setcookie('banana_session', '', time() - 3600, '/');
+            setcookie('banana_avatar', '', time() - 3600, '/');
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Logged out successfully. Session and cookies cleared.'
+            ]);
+        } catch (Exception $e) {
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Failed to clear session.'
+            ]);
+        }
+    }
+
+    /**
+     * [VIRTUAL IDENTITY] Update player avatar
+     * Route: POST /api/auth/avatar (Protected by AuthMiddleware)
+     */
+    public function updateAvatar(): void
+    {
+        try {
+            $authUser = AuthMiddleware::authenticate();
+            $data     = json_decode(file_get_contents('php://input'), true);
+            $avatar   = $data['avatar'] ?? '';
+
+            if (!preg_match('/^avatar-(10|[1-9])$/', $avatar)) {
+                http_response_code(400);
+                echo json_encode([
+                    'success' => false,
+                    'error'   => 'Invalid avatar choice. Must be one of avatar-1 through avatar-10.'
+                ]);
+                return;
+            }
+
+            // Update in MySQL
+            $this->userModel->updateAvatar((int) $authUser['id'], $avatar);
+
+            // Update PHP session
+            if (session_status() === PHP_SESSION_NONE) {
+                @session_start();
+            }
+            $_SESSION['avatar'] = $avatar;
+
+            // Update HTTP Cookie
+            setcookie('banana_avatar', $avatar, [
+                'expires'  => time() + 7 * 86400,
+                'path'     => '/',
+                'httponly' => false,
+                'samesite' => 'Lax'
+            ]);
+
+            // Issue updated JWT token
+            $newToken = JWT::encode([
+                'id'       => $authUser['id'],
+                'username' => $authUser['username'],
+                'avatar'   => $avatar
+            ], 7 * 24 * 60 * 60);
+
+            // Update session cookie
+            setcookie('banana_session', $newToken, [
+                'expires'  => time() + 7 * 86400,
+                'path'     => '/',
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+
+            http_response_code(200);
+            echo json_encode([
+                'success' => true,
+                'message' => 'Player avatar updated successfully!',
+                'avatar'  => $avatar,
+                'token'   => $newToken
+            ]);
+
+        } catch (Exception $e) {
+            error_log('[-] Error updating avatar: ' . $e->getMessage());
+            http_response_code(500);
+            echo json_encode([
+                'success' => false,
+                'error'   => 'Failed to update player avatar.'
+            ]);
+        }
+    }
+
+    /**
      * [VIRTUAL IDENTITY] Verify current active virtual identity session
      * Route: GET /api/auth/me (Protected by AuthMiddleware)
      */
     public function getMe(): void
     {
         try {
-            // Authenticate via JWT middleware
+            // Authenticate via JWT, Cookie, or PHP Session
             $authUser = AuthMiddleware::authenticate();
 
             $user = $this->userModel->findById((int) $authUser['id']);
@@ -207,8 +385,13 @@ class AuthController
                 'user'    => [
                     'id'        => $user['id'],
                     'username'  => $user['username'],
+                    'avatar'    => $user['avatar'] ?? 'avatar-1',
                     'createdAt' => $user['created_at'],
                     'stats'     => $stats
+                ],
+                'session' => [
+                    'active'    => session_status() === PHP_SESSION_ACTIVE,
+                    'hasCookie' => !empty($_COOKIE['banana_session'])
                 ]
             ]);
 

@@ -39,10 +39,19 @@ try {
             id INT AUTO_INCREMENT PRIMARY KEY,
             username VARCHAR(50) UNIQUE NOT NULL,
             password VARCHAR(255) NOT NULL,
+            avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB
     ");
     echo "[✓] Users table initialized.\n";
+
+    // Auto-migrate avatar column in users table if missing from previous version
+    try {
+        $pdo->exec("ALTER TABLE users ADD COLUMN avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL");
+        echo "[✓] Migrated 'avatar' column into users table.\n";
+    } catch (PDOException $e) {
+        // Column already exists
+    }
 
     // Create scores table
     $pdo->exec("
@@ -50,6 +59,7 @@ try {
             id INT AUTO_INCREMENT PRIMARY KEY,
             user_id INT NOT NULL,
             username VARCHAR(50) NOT NULL,
+            avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
             score INT NOT NULL,
             puzzles_solved INT DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -57,6 +67,14 @@ try {
         ) ENGINE=InnoDB
     ");
     echo "[✓] Scores table initialized.\n";
+
+    // Auto-migrate avatar column in scores table if missing
+    try {
+        $pdo->exec("ALTER TABLE scores ADD COLUMN avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL");
+        echo "[✓] Migrated 'avatar' column into scores table.\n";
+    } catch (PDOException $e) {
+        // Column already exists
+    }
 
     // Create indexes (ignore if already exist)
     try {

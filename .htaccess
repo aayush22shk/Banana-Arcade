@@ -16,6 +16,7 @@ RewriteRule ^api/?(.*)$ api/index.php [QSA,L]
 # Serve static files from public/ directory
 RewriteRule ^css/(.*)$ public/css/$1 [L]
 RewriteRule ^js/(.*)$ public/js/$1 [L]
+RewriteRule ^assets/(.*)$ public/assets/$1 [L]
 
 # Root request serves the SPA entry point
 RewriteRule ^$ public/index.html [L]

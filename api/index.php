@@ -15,15 +15,31 @@ ini_set('display_errors', 0);
 // Set JSON content type for all API responses
 header('Content-Type: application/json; charset=utf-8');
 
-// Enable Cross-Origin Resource Sharing (CORS)
-header('Access-Control-Allow-Origin: *');
+// Enable Cross-Origin Resource Sharing (CORS) with Credentials Support
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header('Access-Control-Allow-Credentials: true');
+} else {
+    header('Access-Control-Allow-Origin: *');
+}
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
 
 // Handle CORS preflight requests
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
+}
+
+// [VIRTUAL IDENTITY]: Native PHP Session Initialization
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 7 * 86400,
+        'path'     => '/',
+        'httponly' => true,
+        'samesite' => 'Lax'
+    ]);
+    @session_start();
 }
 
 // ============================================================================
@@ -39,7 +55,7 @@ require_once __DIR__ . '/controllers/GameController.php';
 require_once __DIR__ . '/controllers/LeaderboardController.php';
 require_once __DIR__ . '/services/BananaService.php';
 
-// Initialize JWT with secret key (matching original Node.js configuration)
+// Initialize JWT with secret key for Virtual Identity authentication
 JWT::setSecret('banana_arcade_academic_jwt_secret_key_2026');
 
 // ============================================================================
@@ -68,6 +84,14 @@ try {
 
         case $route === 'auth/login' && $method === 'POST':
             (new AuthController())->login();
+            break;
+
+        case $route === 'auth/logout' && $method === 'POST':
+            (new AuthController())->logout();
+            break;
+
+        case $route === 'auth/avatar' && $method === 'POST':
+            (new AuthController())->updateAvatar();
             break;
 
         case $route === 'auth/me' && $method === 'GET':

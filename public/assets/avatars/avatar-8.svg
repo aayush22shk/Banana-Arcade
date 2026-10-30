@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="bg8" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1f092b" />
+      <stop offset="100%" stop-color="#0b0310" />
+    </radialGradient>
+    <filter id="glow8" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#ff4757" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bg8)" stroke="#ff4757" stroke-width="2.5" />
+  <!-- Ninja Hood -->
+  <path d="M26 48 C26 26 74 26 74 48 C74 72 68 78 50 78 C32 78 26 72 26 48 Z" fill="#2f3542" />
+  <!-- Headband -->
+  <rect x="25" y="32" width="50" height="10" fill="#ff4757" />
+  <!-- Metal Plate -->
+  <rect x="42" y="33" width="16" height="8" rx="2" fill="#dfe4ea" />
+  <circle cx="50" cy="37" r="2" fill="#2f3542" />
+  <!-- Eye Opening -->
+  <polygon points="32,45 68,45 64,56 36,56" fill="#1e272e" />
+  <!-- Glowing Red Cyber Eyes -->
+  <polygon points="36,49 46,49 43,53 37,53" fill="#ff4757" filter="url(#glow8)"/>
+  <polygon points="54,49 64,49 63,53 57,53" fill="#ff4757" filter="url(#glow8)"/>
+  <!-- Mask Creases -->
+  <path d="M38 66 L50 72 L62 66" stroke="#1e272e" stroke-width="2" fill="none"/>
+</svg>

@@ -500,7 +500,7 @@ const App = {
     // [VIRTUAL IDENTITY] Auto-persist score if player is authenticated
     if (Auth.currentUser && Api.getToken()) {
       if (leaderboardStatusEl) {
-        leaderboardStatusEl.textContent = 'Saving high score to persistent SQLite database...';
+        leaderboardStatusEl.textContent = 'Saving high score to persistent database...';
         leaderboardStatusEl.className = 'status-text saving';
       }
 
@@ -629,7 +629,7 @@ const App = {
   },
 
   /**
-   * [VERSION CONTROL] Loads Top 10 Leaderboard from SQLite API
+   * [VERSION CONTROL] Loads Top 10 Leaderboard from REST API
    */
   async loadLeaderboard() {
     const tbody = document.getElementById('leaderboard-tbody');
@@ -637,7 +637,7 @@ const App = {
     if (!tbody) return;
 
     try {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading top scores from SQLite...</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading top scores...</td></tr>';
       const data = await Api.leaderboard.getTop();
 
       if (!data.leaderboard || data.leaderboard.length === 0) {
@@ -656,9 +656,11 @@ const App = {
 
         const medalIcon = rank === 1 ? '🥇 ' : rank === 2 ? '🥈 ' : rank === 3 ? '🥉 ' : `#${rank}`;
         const dateStr = entry.created_at ? new Date(entry.created_at).toLocaleDateString() : 'Recent';
+        const avatarHtml = window.AvatarHelper ? AvatarHelper.render(entry.avatar || 'avatar-1', 32, 'table-avatar-img') : '🍌';
 
         row.innerHTML = `
           <td class="rank-col"><strong>${medalIcon}</strong></td>
+          <td class="table-avatar-cell">${avatarHtml}</td>
           <td class="player-col">
             <span class="player-pill">${this.escapeHTML(entry.username)}</span>
           </td>
@@ -670,7 +672,7 @@ const App = {
       });
 
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="5" class="text-center error">Failed to load leaderboard: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" class="text-center error">Failed to load leaderboard: ${err.message}</td></tr>`;
     }
   },
 

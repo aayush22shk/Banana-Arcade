@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="bg7" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#051f38" />
+      <stop offset="100%" stop-color="#030c17" />
+    </radialGradient>
+    <linearGradient id="visorGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdcb6e" />
+      <stop offset="50%" stop-color="#e17055" />
+      <stop offset="100%" stop-color="#d63031" />
+    </linearGradient>
+    <filter id="glow7" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="0" stdDeviation="3" flood-color="#74b9ff" flood-opacity="0.8"/>
+    </filter>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bg7)" stroke="#74b9ff" stroke-width="2.5" />
+  <!-- Helmet Outer -->
+  <circle cx="50" cy="48" r="30" fill="#dfe6e9" filter="url(#glow7)"/>
+  <!-- Helmet Ears / Comms -->
+  <rect x="16" y="40" width="6" height="16" rx="3" fill="#0984e3" />
+  <rect x="78" y="40" width="6" height="16" rx="3" fill="#0984e3" />
+  <!-- Visor -->
+  <rect x="28" y="34" width="44" height="26" rx="12" fill="url(#visorGrad)" stroke="#2d3436" stroke-width="2" />
+  <!-- Reflection on Visor -->
+  <path d="M34 40 Q46 36 60 38" stroke="#ffffff" stroke-width="2.5" fill="none" opacity="0.8" stroke-linecap="round"/>
+  <!-- Helmet Collar -->
+  <path d="M32 74 C32 68 68 68 68 74 L74 84 L26 84 Z" fill="#b2bec3" />
+</svg>

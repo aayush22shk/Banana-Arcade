@@ -41,12 +41,14 @@ class LeaderboardController
                 return;
             }
 
-            // Persist score in MySQL database
+            // Persist score in MySQL database with player's avatar
+            $avatar = $authUser['avatar'] ?? 'avatar-1';
             $savedRecord = $this->scoreModel->recordScore(
                 (int) $authUser['id'],
                 $authUser['username'],
                 $score,
-                $puzzlesSolved
+                $puzzlesSolved,
+                $avatar
             );
 
             // Fetch updated user stats and global top scores

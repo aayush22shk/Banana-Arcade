@@ -1,6 +1,6 @@
 # 🍌 Banana Arcade - Academic Full-Stack Web Application
 
-A clean, modular, and production-ready full-stack arcade web application built for an academic software engineering assignment. The application integrates the official **University of Bedfordshire Banana API**, features an event-driven 30-second timed game engine, implements persistent virtual identities with JWT authentication, and maintains a persistent SQLite3 global leaderboard.
+A clean, modular, and production-ready full-stack arcade web application built for an academic software engineering assignment. The application integrates the official **University of Bedfordshire Banana API**, features an event-driven 30-second timed game engine, implements persistent virtual identities with JWT authentication, and maintains a persistent MySQL global leaderboard under Apache / XAMPP.
 
 ---
 
@@ -13,7 +13,7 @@ A clean, modular, and production-ready full-stack arcade web application built f
    - [3. Virtual Identity & Security](#3-virtual-identity--security)
    - [4. Version Control & Git Strategy](#4-version-control--git-strategy)
 4. [Software Architecture & MVC Directory Structure](#-software-architecture--mvc-directory-structure)
-5. [Installation & Setup Instructions](#-installation--setup-instructions)
+5. [Installation & Setup Instructions](#-installation--setup-instructions-xampp)
 6. [RESTful API Documentation](#-restful-api-documentation)
 7. [Git Branching Guide](#-git-branching-guide)
 
@@ -42,9 +42,9 @@ The application **strictly integrates** with the university-provided Banana API 
     "solution": 3
   }
   ```
-- **Backend Integration Service:** `src/services/bananaService.js`
-- **Proxy Controller Route:** `GET /api/game/puzzle` (`src/controllers/gameController.js`)
-- **Resilient Fallback Mechanism:** Catches network timeouts using an `AbortController` (5000ms threshold). If the university endpoint experiences network degradation or downtime, the service switches to a cached fallback pool to guarantee zero downtime and prevent server crashes.
+- **Backend Integration Service:** `api/services/BananaService.php`
+- **Proxy Controller Route:** `GET /api/game/puzzle` (`api/controllers/GameController.php`)
+- **Resilient Fallback Mechanism:** Features connection timeout handling (cURL / stream context with 5000ms threshold). If the university endpoint experiences network degradation or downtime, the service switches to a cached fallback pool to guarantee zero downtime and prevent server crashes.
 
 ---
 
@@ -53,9 +53,9 @@ The application **strictly integrates** with the university-provided Banana API 
 All source files contain explicit tags pointing to these core grading criteria:
 
 ### 1. Interoperability
-- **Code Reference:** `src/services/bananaService.js`, `src/routes/gameRoutes.js`, `src/controllers/gameController.js`, `public/js/api.js`
+- **Code Reference:** `api/services/BananaService.php`, `api/controllers/GameController.php`, `public/js/api.js`
 - **Tag:** `// [INTEROPERABILITY]`
-- **Implementation:** The Node.js server acts as an interoperability proxy between the client browser and the University Banana API. This eliminates Cross-Origin (CORS) image loading issues, generates tamper-proof signed puzzle verification tokens using JWT, and ensures graceful exception handling.
+- **Implementation:** The PHP / Apache backend acts as an interoperability proxy between the client browser and the University Banana API. This eliminates Cross-Origin (CORS) image loading issues, generates tamper-proof signed puzzle verification tokens using JWT, and ensures graceful exception handling.
 
 ### 2. Event-Driven Programming
 - **Code Reference:** `public/js/app.js`, `public/js/auth.js`
@@ -70,53 +70,64 @@ All source files contain explicit tags pointing to these core grading criteria:
   - **Audio Synthesis:** Zero-dependency sound effects built directly on the browser's `AudioContext` (Web Audio API).
 
 ### 3. Virtual Identity & Security
-- **Code Reference:** `src/middleware/authMiddleware.js`, `src/controllers/authController.js`, `src/models/userModel.js`, `public/js/auth.js`
+- **Code Reference:** `api/middleware/AuthMiddleware.php`, `api/controllers/AuthController.php`, `api/models/UserModel.php`, `api/helpers/JWT.php`, `public/js/avatars.js`, `public/js/auth.js`
 - **Tag:** `// [VIRTUAL IDENTITY]`
 - **Implementation:**
-  - **Registration (`POST /api/auth/register`):** Hashes passwords using `bcryptjs` with 10 salt rounds and creates a persistent user in SQLite.
-  - **Login (`POST /api/auth/login`):** Validates credentials using `bcrypt.compare` and issues a signed JSON Web Token (JWT) valid for 7 days.
-  - **Identity Verification (`GET /api/auth/me`):** Authenticates the incoming `Bearer <token>` HTTP header and returns the active player's profile and personal best statistics.
-  - **Client Session Management:** Automatically stores and restores the active JWT from `localStorage`.
+  - **10 Arcade Avatars System:** Players choose their custom arcade avatar from 10 unique SVG characters (`Banana Hero`, `Cyber Kong`, `Retro Bot`, `Pixel Invader`, `Neon Fox`, `Laser Tiger`, `Astro Pilot`, `Shadow Ninja`, `Cyber Mage`, `Banana King`) upon registration, customizable anytime via the in-game Avatar Wardrobe.
+  - **Dual-State Authentication (Sessions & Cookies + JWT):**
+    - **Native PHP Sessions:** Uses `session_start()` and `session_regenerate_id(true)` to maintain secure, server-side session state (`$_SESSION['user_id']`, `$_SESSION['username']`, `$_SESSION['avatar']`).
+    - **HTTP Cookies:** Dispatches secure HttpOnly cookies (`banana_session`, `banana_avatar`) with `SameSite=Lax` protection.
+    - **JWT Bearer Tokens:** Issues signed HMAC-SHA256 tokens for REST/SPA interoperability.
+  - **Registration (`POST /api/auth/register`):** Hashes passwords using PHP's native `password_hash` (bcrypt, cost = 10), assigns avatar, sets session & cookies, and stores credentials in MySQL.
+  - **Login (`POST /api/auth/login`):** Validates credentials using `password_verify`, starts active PHP session, sets session cookies, and returns JWT session token.
+  - **Avatar Wardrobe (`POST /api/auth/avatar`):** Live avatar customizer updating MySQL, session state, and cookies.
+  - **Logout (`POST /api/auth/logout`):** Destroys server PHP sessions (`session_destroy()`), unsets session superglobals, and expires all auth cookies.
+  - **Identity Verification (`GET /api/auth/me`):** Multi-layered middleware authenticating via Bearer token, session cookie, or active PHP session.
 
 ### 4. Version Control & Git Strategy
-- **Code Reference:** `.gitignore`, `package.json`, `src/models/db.js`, `src/models/scoreModel.js`
+- **Code Reference:** `.gitignore`, `.htaccess`, `api/config/Database.php`, `api/models/ScoreModel.php`
 - **Tag:** `// [VERSION CONTROL]`
-- **Implementation:** Clean separation of concerns (MVC architecture), comprehensive `.gitignore` preventing database or credential leaks, and a documented Git branching model.
+- **Implementation:** Clean separation of concerns (MVC architecture), comprehensive `.gitignore` preventing database credential or log leaks, and a documented Git branching model.
 
 ---
 
 ## 📂 Software Architecture & MVC Directory Structure
 
 ```text
-banana-arcade/
+BananaAPI/
+├── api/                        # Backend REST API Layer (PHP MVC Pattern)
+│   ├── config/
+│   │   └── Database.php        # MySQL PDO singleton connection & auto-migration
+│   ├── controllers/            # Route business logic handlers
+│   │   ├── AuthController.php  # Registration, login, logout, avatar & identity
+│   │   ├── GameController.php  # Puzzle proxy & answer verification
+│   │   └── LeaderboardController.php # High score persistence & rankings
+│   ├── helpers/
+│   │   └── JWT.php             # Pure PHP HMAC-SHA256 JWT encoding/decoding
+│   ├── middleware/
+│   │   └── AuthMiddleware.php  # Multi-layer Bearer/Cookie/Session validator
+│   ├── models/                 # Database access models
+│   │   ├── UserModel.php       # User identity, avatar & credential queries
+│   │   └── ScoreModel.php      # High score recording & leaderboard queries
+│   ├── services/               # External web service interoperability
+│   │   └── BananaService.php   # University Banana API client & resilient fallback
+│   ├── .htaccess               # Apache URL routing for /api endpoints
+│   └── index.php               # Front controller & REST API router
+├── database/                   # Database Schemas & Migrations
+│   ├── setup.php               # One-click browser database initialization & auto-migration
+│   └── setup.sql               # MySQL table creation and indexing schemas
 ├── public/                     # Frontend Client Layer (SPA)
-│   ├── index.html              # Single Page Application HTML5 structure
+│   ├── assets/
+│   │   └── avatars/            # 10 Scalable Vector Graphics (SVG) arcade avatars
 │   ├── css/
 │   │   └── styles.css          # Modern arcade & cyberpunk visual stylesheet
-│   └── js/
-│       ├── api.js              # Client-side REST API wrapper & JWT handler
-│       ├── auth.js             # Virtual identity UI controller & auth event listeners
-│       └── app.js              # Event-driven game engine, timer loop & Web Audio SFX
-├── src/                        # Backend Server Layer (MVC Pattern)
-│   ├── controllers/            # Route business logic handlers
-│   │   ├── authController.js   # Registration, login & identity verification
-│   │   ├── gameController.js   # Puzzle proxy & answer verification
-│   │   └── leaderboardController.js # High score persistence & rankings
-│   ├── middleware/             # Express middlewares
-│   │   └── authMiddleware.js   # JWT authentication & route guard
-│   ├── models/                 # SQLite3 Database models & schema
-│   │   ├── db.js               # Database connection & table initializations
-│   │   ├── userModel.js        # User identity queries
-│   │   └── scoreModel.js       # Score recording & top 10 retrieval
-│   ├── routes/                 # Express API router definitions
-│   │   ├── authRoutes.js       # /api/auth endpoints
-│   │   ├── gameRoutes.js       # /api/game endpoints
-│   │   └── leaderboardRoutes.js # /api/leaderboard endpoints
-│   └── services/               # External interoperability layer
-│       └── bananaService.js    # University Banana API client & fallback handler
-├── database.db                 # SQLite persistent storage file
-├── server.js                   # Application entry point & static file server
-├── package.json                # Project dependencies & npm scripts
+│   ├── js/
+│   │   ├── avatars.js          # 10-Avatar definitions, renderers & grid selector
+│   │   ├── api.js              # Client-side REST API wrapper, cookies & JWT
+│   │   ├── auth.js             # Virtual identity UI, session restore & wardrobe
+│   │   └── app.js              # Event-driven game engine, timer loop & Web Audio SFX
+│   └── index.html              # Single Page Application HTML5 structure
+├── .htaccess                   # Root Apache mod_rewrite rules (SPA routing)
 ├── .gitignore                  # Git version control exclusions
 └── README.md                   # Academic project documentation
 ```
@@ -128,17 +139,18 @@ banana-arcade/
 ### Prerequisites
 - [XAMPP](https://www.apachefriends.org/) with Apache, PHP 8+, and MySQL running
 
-### 1. Clone or Open Project
+### 1. Project Location
+Ensure the project is located within your XAMPP web root:
 ```text
 C:\xampp\htdocs\BananaAPI
 ```
 
 ### 2. Start Services in XAMPP
-1. Open **XAMPP Control Panel**.
-2. Start **Apache** and **MySQL**.
+1. Open the **XAMPP Control Panel**.
+2. Start both **Apache** and **MySQL**.
 
 ### 3. Database Initialization
-Database and tables are auto-created on first run, or navigate to:
+Database and tables are auto-created on first run, or you can manually initialize by visiting:
 ```text
 http://localhost/BananaAPI/database/setup.php
 ```
@@ -156,13 +168,15 @@ http://localhost/BananaAPI/
 | Method | Endpoint | Access | Description |
 |---|---|---|---|
 | `GET` | `/api/health` | Public | System status and University API connectivity verification |
-| `POST` | `/api/auth/register` | Public | Register new player with bcrypt-hashed password (salt = 10) |
-| `POST` | `/api/auth/login` | Public | Authenticate player and receive signed JWT session token |
-| `GET` | `/api/auth/me` | Protected (JWT) | Retrieve active virtual identity profile & personal stats |
+| `POST` | `/api/auth/register` | Public | Register player with chosen avatar, bcrypt password, session & cookies |
+| `POST` | `/api/auth/login` | Public | Authenticate player, start PHP session, set cookies & issue JWT |
+| `POST` | `/api/auth/logout` | Public | Terminate active PHP session and clear all authentication cookies |
+| `POST` | `/api/auth/avatar` | Protected | Update player avatar in MySQL, active session & cookies |
+| `GET` | `/api/auth/me` | Protected | Verify active virtual identity via token, cookie or session |
 | `GET` | `/api/game/puzzle` | Public | Query University Banana API & return puzzle image and token |
 | `POST` | `/api/game/verify` | Public | Verify submitted answer against signed puzzle token |
-| `GET` | `/api/leaderboard` | Public | Retrieve top 10 global high scores from SQLite3 |
-| `POST` | `/api/leaderboard/submit` | Protected (JWT) | Record player game score and timestamp to SQLite3 |
+| `GET` | `/api/leaderboard` | Public | Retrieve top 10 global high scores with player avatars from MySQL |
+| `POST` | `/api/leaderboard/submit` | Protected | Record player game score, avatar and timestamp to MySQL |
 
 ---
 
@@ -177,7 +191,7 @@ For version control workflows and assignment grading compliance, use the followi
    - `feature/auth`: Virtual identity, bcrypt password hashing, and JWT middleware.
    - `feature/banana-api`: University Banana API service interoperability and proxy routes.
    - `feature/game-ui`: Single Page Application, event-driven game engine, and arcade keypad.
-   - `feature/leaderboard`: SQLite schema, persistence layer, and top 10 rankings.
+   - `feature/leaderboard`: MySQL schema, persistence layer, and top 10 rankings.
 
 ### Example Git Commands
 ```bash
@@ -209,7 +223,7 @@ git merge --no-ff feature/game-ui
 
 # Feature 4: Persistent Leaderboard
 git checkout -b feature/leaderboard
-git commit -am "feat(db): implement SQLite persistent leaderboard and top 10 view"
+git commit -am "feat(db): implement MySQL persistent leaderboard and top 10 view"
 git checkout develop
 git merge --no-ff feature/leaderboard
 
@@ -226,4 +240,3 @@ git tag -a v1.0.0 -m "Release version 1.0.0 for academic grading"
 This application strictly satisfies all requirements outlined in the university software engineering assignment brief:
 - **Constraint Compliance:** Strictly relies on the University Banana API endpoint (`https://marcconrad.com/uob/banana/api.php?out=json`).
 - **Code Standards:** Adheres to clean code practices, separation of concerns (MVC), modular components, and comprehensive error handling.
-

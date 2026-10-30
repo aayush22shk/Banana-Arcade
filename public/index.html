@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Banana Arcade | University Full-Stack Software Engineering</title>
-  <meta name="description" content="Banana Arcade - Production-ready academic full-stack web application featuring University Banana API interoperability, JWT Virtual Identity, SQLite persistence, and an event-driven game engine.">
+  <meta name="description" content="Banana Arcade - Production-ready academic full-stack web application featuring University Banana API interoperability, JWT Virtual Identity, MySQL persistence, and an event-driven game engine.">
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍌</text></svg>">
 </head>
@@ -66,8 +66,8 @@
         </span>
       </div>
       <div class="compliance-tags">
-        <span class="tag-badge">Node.js + Express</span>
-        <span class="tag-badge">SQLite3 DB</span>
+        <span class="tag-badge">PHP + Apache</span>
+        <span class="tag-badge">MySQL DB</span>
         <span class="tag-badge">JWT Identity</span>
         <span class="tag-badge">Event-Driven</span>
       </div>
@@ -221,7 +221,7 @@
         <div class="leaderboard-header">
           <div>
             <h2 class="view-heading">HALL OF FAME</h2>
-            <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">Top 10 Global High Scores (Stored in SQLite3)</p>
+            <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">Top 10 Global High Scores (Stored in MySQL)</p>
           </div>
           <button class="btn-icon" onclick="App.loadLeaderboard()">🔄 Refresh</button>
         </div>
@@ -231,6 +231,7 @@
             <thead>
               <tr>
                 <th class="rank-col">Rank</th>
+                <th style="width: 50px;">Avatar</th>
                 <th>Player Identity</th>
                 <th class="score-col">High Score</th>
                 <th>Puzzles Solved</th>
@@ -238,7 +239,7 @@
               </tr>
             </thead>
             <tbody id="leaderboard-tbody">
-              <!-- Dynamically populated via SQLite API -->
+              <!-- Dynamically populated via REST API -->
             </tbody>
           </table>
           <div id="leaderboard-empty" class="empty-state hidden">
@@ -253,7 +254,9 @@
          ==================================================================== -->
     <section id="view-auth" class="view-section hidden">
       <div class="auth-wrapper">
-        <div class="auth-card">
+
+        <!-- SUBVIEW A: GUEST AUTHENTICATION (Login & Register) -->
+        <div id="auth-guest-box" class="auth-card">
           <!-- Auth Tabs -->
           <div class="auth-tabs">
             <button id="tab-login" class="auth-tab active">Player Login</button>
@@ -276,12 +279,16 @@
             <button type="submit" class="btn-auth-submit">ENTER ARCADE</button>
           </form>
 
-          <!-- Form 2: Register -->
+          <!-- Form 2: Register (With Interactive 10-Avatar Selector) -->
           <form id="form-register" class="hidden">
             <div class="form-group">
               <label for="register-username">Choose Username</label>
               <input type="text" id="register-username" class="form-input" placeholder="3-20 characters" required autocomplete="username">
             </div>
+
+            <!-- [VIRTUAL IDENTITY] 10-Avatar Interactive Selector Container -->
+            <div id="register-avatar-picker" class="form-group"></div>
+
             <div class="form-group">
               <label for="register-password">Password (min 6 chars)</label>
               <input type="password" id="register-password" class="form-input" placeholder="••••••••" required autocomplete="new-password">
@@ -293,6 +300,53 @@
             <button type="submit" class="btn-auth-submit">CREATE VIRTUAL IDENTITY</button>
           </form>
         </div>
+
+        <!-- SUBVIEW B: AUTHENTICATED PROFILE & AVATAR WARDROBE -->
+        <div id="auth-profile-box" class="profile-card-wrapper hidden" style="max-width: 580px; width: 100%;">
+          <div class="profile-hero">
+            <div class="profile-avatar-large" id="profile-avatar-display">
+              <!-- Dynamically populated avatar SVG -->
+            </div>
+            <div class="profile-hero-info">
+              <h2 class="profile-username" id="profile-username-display">Player</h2>
+              <div class="profile-badges">
+                <span class="badge-pill badge-session" id="badge-session-status">🟢 PHP Session: Active</span>
+                <span class="badge-pill badge-cookie" id="badge-cookie-status">🍪 Identity Cookie: Set</span>
+              </div>
+              <p class="text-muted" id="profile-member-since" style="font-size: 0.8rem; margin: 0;">Member of Banana Arcade</p>
+            </div>
+          </div>
+
+          <div class="profile-stats-grid">
+            <div class="profile-stat-box">
+              <span class="pstat-val" id="profile-stat-highscore">0</span>
+              <span class="pstat-lbl">Personal Best</span>
+            </div>
+            <div class="profile-stat-box">
+              <span class="pstat-val" id="profile-stat-games">0</span>
+              <span class="pstat-lbl">Games Played</span>
+            </div>
+            <div class="profile-stat-box">
+              <span class="pstat-val" id="profile-stat-puzzles">0</span>
+              <span class="pstat-lbl">Puzzles Solved</span>
+            </div>
+          </div>
+
+          <!-- Wardrobe: In-Game Avatar Customization -->
+          <div class="wardrobe-box">
+            <h3 class="wardrobe-title">🎨 Avatar Wardrobe (Change Character)</h3>
+            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 8px;">Select a new avatar to instantly update your persistent Virtual Identity:</p>
+            <div id="profile-avatar-selector"></div>
+            <div id="profile-wardrobe-msg" class="message-box hidden" style="margin-top: 10px;"></div>
+            <button id="btn-save-avatar" class="btn-auth-submit" style="margin-top: 10px;">SAVE AVATAR CHANGE</button>
+          </div>
+
+          <div style="margin-top: 1.5rem; display: flex; gap: 10px; justify-content: center;">
+            <button id="btn-profile-play" class="btn-submit-answer" style="padding: 0.6rem 1.25rem;">🎮 PLAY GAME</button>
+            <button id="btn-profile-logout" class="btn-skip-puzzle" style="padding: 0.6rem 1.25rem; border-color: #ff4757; color: #ff6b81;">SIGN OUT</button>
+          </div>
+        </div>
+
       </div>
     </section>
 
@@ -343,6 +397,7 @@
   </footer>
 
   <!-- Modular Client JavaScript -->
+  <script src="js/avatars.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/app.js"></script>

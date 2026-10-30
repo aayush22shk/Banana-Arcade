@@ -30,6 +30,14 @@ class Database
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false
             ]);
+
+            // Auto-heal avatar column in users and scores if running on an existing database
+            try {
+                $this->pdo->exec("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL");
+            } catch (Exception $ign) {}
+            try {
+                $this->pdo->exec("ALTER TABLE scores ADD COLUMN IF NOT EXISTS avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL");
+            } catch (Exception $ign) {}
         } catch (PDOException $e) {
             // Auto-create database and tables if missing
             if ($e->getCode() == 1049 || stripos($e->getMessage(), 'Unknown database') !== false) {
