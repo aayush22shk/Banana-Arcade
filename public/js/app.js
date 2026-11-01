@@ -102,6 +102,9 @@ const App = {
     this.updateDifficultyUI();
     this.showView('game');
     this.loadLeaderboard();
+    if (window.AchievementManager) {
+      AchievementManager.init();
+    }
   },
 
   /**
@@ -195,6 +198,92 @@ const App = {
         gain.connect(this.audioCtx.destination);
         osc.start(now + idx * 0.12);
         osc.stop(now + idx * 0.12 + 0.26);
+      });
+    } else if (type === 'combo_nice') {
+      // 2 in a row: Crisp 2-tone chime
+      [587.33, 880].forEach((freq, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.18);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + idx * 0.08);
+        osc.stop(now + idx * 0.08 + 0.19);
+      });
+    } else if (type === 'combo_3') {
+      // 3 in a row: Ascending triad
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+        gain.gain.setValueAtTime(0.25, now + idx * 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.2);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + idx * 0.07);
+        osc.stop(now + idx * 0.07 + 0.21);
+      });
+    } else if (type === 'combo_5') {
+      // 5 in a row: Fast vibrant arpeggio
+      [659.25, 783.99, 987.77, 1318.51].forEach((freq, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+        gain.gain.setValueAtTime(0.28, now + idx * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.25);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + idx * 0.06);
+        osc.stop(now + idx * 0.06 + 0.26);
+      });
+    } else if (type === 'combo_7') {
+      // 7 in a row: Major chord brilliance
+      [587.33, 739.99, 880, 1174.66, 1479.98].forEach((freq, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+        gain.gain.setValueAtTime(0.3, now + idx * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.3);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + idx * 0.05);
+        osc.stop(now + idx * 0.05 + 0.31);
+      });
+    } else if (type === 'combo_10') {
+      // 10+ in a row: Heroic arpeggio explosion
+      [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach((freq, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.05);
+        gain.gain.setValueAtTime(0.35, now + idx * 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.05 + 0.35);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + idx * 0.05);
+        osc.stop(now + idx * 0.05 + 0.36);
+      });
+    } else if (type === 'achievement') {
+      // Celebratory trophy fanfare: C5 -> E5 -> G5 -> C6 sustain
+      const notes = [523.25, 659.25, 783.99, 1046.50];
+      notes.forEach((freq, idx) => {
+        const osc = this.audioCtx.createOscillator();
+        const gain = this.audioCtx.createGain();
+        osc.type = idx === 3 ? 'triangle' : 'sine';
+        osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+        gain.gain.setValueAtTime(0.32, now + idx * 0.1);
+        const duration = idx === 3 ? 0.6 : 0.2;
+        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + duration);
+        osc.connect(gain);
+        gain.connect(this.audioCtx.destination);
+        osc.start(now + idx * 0.1);
+        osc.stop(now + idx * 0.1 + duration + 0.05);
       });
     }
   },
@@ -317,6 +406,10 @@ const App = {
 
     if (viewName === 'settings') {
       this.syncSettingsUI();
+    }
+
+    if (viewName === 'trophies' && window.AchievementManager) {
+      AchievementManager.fetchAchievements();
     }
 
     // Refresh multiplayer lobby identity when switching to multiplayer view
@@ -705,12 +798,22 @@ const App = {
         this.state.timeLeft = Math.min(this.state.maxTime + 15, this.state.timeLeft + cfg.correctTimeBonus);
       }
 
-      // Mode multipliers
-      const mList = cfg.multipliers;
-      if (this.state.streak >= 8) this.state.multiplier = mList[mList.length - 1];
-      else if (this.state.streak >= 5) this.state.multiplier = mList[Math.min(3, mList.length - 1)];
-      else if (this.state.streak >= 2) this.state.multiplier = mList[1];
-      else this.state.multiplier = mList[0];
+      // Dynamic Combo Multiplier (3-4: 1.5x, 5-6: 2x, 7-9: 2.5x, 10+: 3x)
+      if (window.ComboManager) {
+        this.state.multiplier = ComboManager.getMultiplier(this.state.streak);
+        ComboManager.trigger(this.state.streak);
+      } else {
+        if (this.state.streak >= 10) this.state.multiplier = 3.0;
+        else if (this.state.streak >= 7) this.state.multiplier = 2.5;
+        else if (this.state.streak >= 5) this.state.multiplier = 2.0;
+        else if (this.state.streak >= 3) this.state.multiplier = 1.5;
+        else this.state.multiplier = 1.0;
+      }
+
+      // Record combo achievement progression
+      if (window.AchievementManager) {
+        AchievementManager.recordEvent('combo_reached', { streak: this.state.streak });
+      }
 
       // Adaptive dynamic intensity escalation on winning streaks
       this.increaseIntensity();
@@ -762,6 +865,17 @@ const App = {
     clearInterval(this.state.timerInterval);
     this.state.isPlaying = false;
     this.playSound('gameover');
+
+    // Record solo game completion for achievements
+    if (window.AchievementManager) {
+      AchievementManager.recordEvent('solo_game_completed', {
+        score: this.state.score,
+        puzzlesSolved: this.state.puzzlesSolved,
+        attempts: this.state.totalAttempts,
+        streak: this.state.streak,
+        difficulty: this.state.difficulty
+      });
+    }
 
     const cfg = this.DIFFICULTIES[this.state.difficulty] || this.DIFFICULTIES.medium;
 

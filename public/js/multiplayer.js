@@ -666,6 +666,15 @@ const Multiplayer = {
     // Round indicator
     const roundEl = document.getElementById('mp-arena-round');
     if (roundEl) roundEl.textContent = `ROUND ${room.puzzle_number || 1}`;
+
+    // Streak indicators
+    const p1StreakEl = document.getElementById('mp-arena-p1-streak');
+    const p2StreakEl = document.getElementById('mp-arena-p2-streak');
+    const hStreak = room.host_streak || 0;
+    const gStreak = room.guest_streak || 0;
+    if (p1StreakEl) p1StreakEl.textContent = `🔥 ${hStreak} Streak`;
+    if (p2StreakEl) p2StreakEl.textContent = `🔥 ${gStreak} Streak`;
+    this.state.myLastStreak = this.state.role === 'host' ? hStreak : gStreak;
   },
 
   /**
@@ -734,6 +743,27 @@ const Multiplayer = {
     // ── Update round number ───────────────────────────────────────────────────
     const roundEl = document.getElementById('mp-arena-round');
     if (roundEl) roundEl.textContent = `ROUND ${room.puzzle_number || 1}`;
+
+    // ── Sync streak badges & trigger combo animations ─────────────────────────
+    const p1StreakEl = document.getElementById('mp-arena-p1-streak');
+    const p2StreakEl = document.getElementById('mp-arena-p2-streak');
+    const hStreak = parseInt(room.host_streak || 0, 10);
+    const gStreak = parseInt(room.guest_streak || 0, 10);
+    if (p1StreakEl) p1StreakEl.textContent = `🔥 ${hStreak} Streak`;
+    if (p2StreakEl) p2StreakEl.textContent = `🔥 ${gStreak} Streak`;
+
+    const isHost = this.state.role === 'host';
+    const myStreak = isHost ? hStreak : gStreak;
+
+    if (myStreak > (this.state.myLastStreak || 0)) {
+      if (window.ComboManager) {
+        ComboManager.trigger(myStreak);
+      }
+      if (window.AchievementManager) {
+        AchievementManager.recordEvent('combo_reached', { streak: myStreak });
+      }
+    }
+    this.state.myLastStreak = myStreak;
 
     // ── Sync event banner if message changed ──────────────────────────────────
     if (room.last_event_msg && room.last_event_msg !== this.state.lastEventMsg) {
@@ -900,6 +930,15 @@ const Multiplayer = {
     if (statP2Lbl)  statP2Lbl.textContent  = `${room.guest_name || 'Challenger'} (Guest)`;
     if (statP2HP)   statP2HP.textContent   = guestHP > 0 ? ('❤️'.repeat(guestHP) + ` (${guestHP}/3)`) : '💀 0/3 HP';
     if (statScore)  statScore.textContent  = `${myScore || 0} PTS`;
+
+    // Record multiplayer match result for persistent achievements
+    if (window.AchievementManager) {
+      AchievementManager.recordEvent('multiplayer_match_ended', {
+        won: didIWin,
+        remainingHp: myHP,
+        streak: myStreak
+      });
+    }
 
     // Show modal
     const modal = document.getElementById('mp-modal-battleover');
@@ -1134,6 +1173,8 @@ const Multiplayer = {
     this.state.isSubmitting   = false;
     this.state.gameOver       = false;
     this.state.waitingForStart = false;
+    this.state.myLastStreak   = 0;
+    this.state.oppLastStreak  = 0;
     this._pollErrorCount      = 0;
     this._currentScreenName   = 'lobby';
   },

@@ -238,6 +238,31 @@ const Api = {
         body: JSON.stringify({ roomCode, role, action, ...data })
       });
     }
+  },
+
+  // ==========================================
+  // [TROPHIES & ACHIEVEMENTS]
+  // ==========================================
+  achievements: {
+    /**
+     * Fetches the 18 trophies, unlock statuses, and player stats
+     */
+    async get(playerId = null) {
+      const qs = playerId ? `?playerId=${encodeURIComponent(playerId)}` : '';
+      return await Api.request(`/achievements${qs}`, {
+        method: 'GET'
+      });
+    },
+
+    /**
+     * Records a game event (solo_game_completed, multiplayer_match_ended, combo_reached)
+     */
+    async recordEvent(event, data = {}, playerId = null) {
+      return await Api.request('/achievements/event', {
+        method: 'POST',
+        body: JSON.stringify({ event, data, playerId })
+      });
+    }
   }
 };
 

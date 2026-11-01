@@ -48,10 +48,12 @@ CREATE TABLE IF NOT EXISTS multiplayer_rooms (
     host_avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
     host_hp INT DEFAULT 3 NOT NULL,
     host_score INT DEFAULT 0 NOT NULL,
+    host_streak INT DEFAULT 0 NOT NULL,
     guest_name VARCHAR(50) NULL,
     guest_avatar VARCHAR(50) DEFAULT 'avatar-2' NOT NULL,
     guest_hp INT DEFAULT 3 NOT NULL,
     guest_score INT DEFAULT 0 NOT NULL,
+    guest_streak INT DEFAULT 0 NOT NULL,
     current_puzzle_question TEXT NULL,
     current_puzzle_solution INT NULL,
     puzzle_number INT DEFAULT 1 NOT NULL,
@@ -62,4 +64,33 @@ CREATE TABLE IF NOT EXISTS multiplayer_rooms (
 ) ENGINE=InnoDB;
 
 CREATE INDEX idx_room_code ON multiplayer_rooms (room_code);
+
+-- [TROPHIES & ACHIEVEMENTS] Persistent Player Stats
+CREATE TABLE IF NOT EXISTS player_stats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    player_id VARCHAR(100) UNIQUE NOT NULL,
+    user_id INT NULL,
+    games_played INT DEFAULT 0 NOT NULL,
+    games_won INT DEFAULT 0 NOT NULL,
+    consecutive_wins INT DEFAULT 0 NOT NULL,
+    max_streak INT DEFAULT 0 NOT NULL,
+    mp_matches INT DEFAULT 0 NOT NULL,
+    mp_wins INT DEFAULT 0 NOT NULL,
+    perfect_games INT DEFAULT 0 NOT NULL,
+    survivor_wins INT DEFAULT 0 NOT NULL,
+    difficulties_won VARCHAR(100) DEFAULT '' NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_player_id (player_id)
+) ENGINE=InnoDB;
+
+-- [TROPHIES & ACHIEVEMENTS] Unlocked Player Achievements
+CREATE TABLE IF NOT EXISTS player_achievements (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    player_id VARCHAR(100) NOT NULL,
+    achievement_id VARCHAR(50) NOT NULL,
+    unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_player_ach (player_id, achievement_id),
+    INDEX idx_ach_player (player_id)
+) ENGINE=InnoDB;
 

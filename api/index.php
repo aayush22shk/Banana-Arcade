@@ -51,10 +51,12 @@ require_once __DIR__ . '/middleware/AuthMiddleware.php';
 require_once __DIR__ . '/models/UserModel.php';
 require_once __DIR__ . '/models/ScoreModel.php';
 require_once __DIR__ . '/models/MultiplayerModel.php';
+require_once __DIR__ . '/models/AchievementModel.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/GameController.php';
 require_once __DIR__ . '/controllers/LeaderboardController.php';
 require_once __DIR__ . '/controllers/MultiplayerController.php';
+require_once __DIR__ . '/controllers/AchievementController.php';
 require_once __DIR__ . '/services/BananaService.php';
 
 // Initialize JWT with secret key for Virtual Identity authentication
@@ -133,6 +135,15 @@ try {
 
         case $route === 'leaderboard/submit' && $method === 'POST':
             (new LeaderboardController())->submitScore();
+            break;
+
+        // [TROPHIES & ACHIEVEMENTS] Endpoints (/api/achievements)
+        case $route === 'achievements' && $method === 'GET':
+            (new AchievementController())->getAchievements();
+            break;
+
+        case $route === 'achievements/event' && $method === 'POST':
+            (new AchievementController())->recordEvent();
             break;
 
         // System Health Check & Assignment Metadata Endpoint

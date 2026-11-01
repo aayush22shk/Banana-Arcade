@@ -104,4 +104,45 @@ class AuthMiddleware
             exit;
         }
     }
+
+    /**
+     * Non-blocking user lookup: returns user if authenticated, or null if guest
+     */
+    public static function getUser(): ?array
+    {
+        $token = '';
+        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+        if (function_exists('apache_request_headers')) {
+            $headers = apache_request_headers();
+            $authHeader = $authHeader ?: ($headers['Authorization'] ?? $headers['authorization'] ?? '');
+        }
+
+        if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+            $token = trim($matches[1]);
+        }
+        if (empty($token) && !empty($_COOKIE['banana_session'])) {
+            $token = trim($_COOKIE['banana_session']);
+        }
+
+        if (!empty($token)) {
+            try {
+                $decoded = JWT::decode($token);
+                return [
+                    'id'       => (int)$decoded['id'],
+                    'username' => $decoded['username'] ?? 'Player',
+                    'avatar'   => $decoded['avatar'] ?? 'avatar-1'
+                ];
+            } catch (Exception $e) {}
+        }
+
+        if (!empty($_SESSION['logged_in']) && !empty($_SESSION['user_id'])) {
+            return [
+                'id'       => (int)$_SESSION['user_id'],
+                'username' => $_SESSION['username'] ?? 'Player',
+                'avatar'   => $_SESSION['avatar'] ?? 'avatar-1'
+            ];
+        }
+
+        return null;
+    }
 }

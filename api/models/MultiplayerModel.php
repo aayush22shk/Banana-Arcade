@@ -28,10 +28,10 @@ class MultiplayerModel
 
         $stmt = $this->db->prepare("
             INSERT INTO multiplayer_rooms 
-                (room_code, status, host_name, host_avatar, host_hp, host_score, 
-                 current_puzzle_question, current_puzzle_solution, puzzle_number, last_event_msg)
+                (room_code, status, host_name, host_avatar, host_hp, host_score, host_streak,
+                 guest_streak, current_puzzle_question, current_puzzle_solution, puzzle_number, last_event_msg)
             VALUES 
-                (:code, 'waiting', :hname, :havatar, 3, 0, :pquest, :psol, 1, 'Room created. Waiting for challenger...')
+                (:code, 'waiting', :hname, :havatar, 3, 0, 0, 0, :pquest, :psol, 1, 'Room created. Waiting for challenger...')
         ");
 
         $stmt->execute([
@@ -68,6 +68,8 @@ class MultiplayerModel
                 guest_avatar = :gavatar, 
                 guest_hp = 3, 
                 guest_score = 0, 
+                guest_streak = 0,
+                host_streak = 0,
                 status = 'ready',
                 last_event_msg = :msg
             WHERE room_code = :code AND status = 'waiting'
@@ -114,17 +116,47 @@ class MultiplayerModel
         $opponentName = $isHost ? $room['guest_name'] : $room['host_name'];
 
         if ($isCorrect) {
-            // Correct Answer: Award points and load next puzzle
+            // Correct Answer: Calculate Combo Streak & Multiplier
+            $currentStreak = (int)($isHost ? ($room['host_streak'] ?? 0) : ($room['guest_streak'] ?? 0));
+            $newStreak = $currentStreak + 1;
+
+            // Multiplier scale: 3-4 (1.5x), 5-6 (2x), 7-9 (2.5x), 10+ (3x)
+            $mult = 1.0;
+            if ($newStreak >= 10) {
+                $mult = 3.0;
+                $comboLabel = "🔥 UNSTOPPABLE x{$newStreak}!";
+            } elseif ($newStreak >= 7) {
+                $mult = 2.5;
+                $comboLabel = "💥 FANTASTIC x{$newStreak}!";
+            } elseif ($newStreak >= 5) {
+                $mult = 2.0;
+                $comboLabel = "⚡ AMAZING x{$newStreak}!";
+            } elseif ($newStreak >= 3) {
+                $mult = 1.5;
+                $comboLabel = "✨ COMBO x{$newStreak}!";
+            } elseif ($newStreak === 2) {
+                $mult = 1.0;
+                $comboLabel = "👍 NICE!";
+            } else {
+                $mult = 1.0;
+                $comboLabel = "";
+            }
+
+            $pointsEarned = (int) round(10 * $mult);
+            $msgSuffix = $comboLabel ? " {$comboLabel} (+{$pointsEarned} pts)" : " (+{$pointsEarned} pts)";
+
             $sql = $isHost
                 ? "UPDATE multiplayer_rooms 
-                   SET host_score = host_score + 10,
+                   SET host_score = host_score + :pts,
+                       host_streak = :newStreak,
                        current_puzzle_question = :nextQuest,
                        current_puzzle_solution = :nextSol,
                        puzzle_number = puzzle_number + 1,
                        last_event_msg = :msg
                    WHERE room_code = :code"
                 : "UPDATE multiplayer_rooms 
-                   SET guest_score = guest_score + 10,
+                   SET guest_score = guest_score + :pts,
+                       guest_streak = :newStreak,
                        current_puzzle_question = :nextQuest,
                        current_puzzle_solution = :nextSol,
                        puzzle_number = puzzle_number + 1,
@@ -133,14 +165,16 @@ class MultiplayerModel
 
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
+                ':pts'       => $pointsEarned,
+                ':newStreak' => $newStreak,
                 ':nextQuest' => $nextPuzzle['question'],
                 ':nextSol'   => (int) $nextPuzzle['solution'],
-                ':msg'       => "🎯 {$playerName} solved the puzzle correctly (+10 pts)!",
+                ':msg'       => "🎯 {$playerName} solved the puzzle!{$msgSuffix}",
                 ':code'      => $room['room_code']
             ]);
 
         } else {
-            // Incorrect Answer: Player loses 1 Health Bar (HP)
+            // Incorrect Answer: Player loses 1 Health Bar (HP) and resets OWN streak to 0
             $currentHp = $isHost ? (int) $room['host_hp'] : (int) $room['guest_hp'];
             $newHp = max(0, $currentHp - 1);
             $hasLost = ($newHp <= 0);
@@ -150,12 +184,14 @@ class MultiplayerModel
                 $sql = $isHost
                     ? "UPDATE multiplayer_rooms 
                        SET host_hp = 0,
+                           host_streak = 0,
                            status = 'finished',
                            winner = :winner,
                            last_event_msg = :msg
                        WHERE room_code = :code"
                     : "UPDATE multiplayer_rooms 
                        SET guest_hp = 0,
+                           guest_streak = 0,
                            status = 'finished',
                            winner = :winner,
                            last_event_msg = :msg
@@ -168,21 +204,23 @@ class MultiplayerModel
                     ':code'   => $room['room_code']
                 ]);
             } else {
-                // Lost 1 HP, match continues
+                // Lost 1 HP, streak resets to 0, match continues
                 $sql = $isHost
                     ? "UPDATE multiplayer_rooms 
                        SET host_hp = :newHp,
+                           host_streak = 0,
                            last_event_msg = :msg
                        WHERE room_code = :code"
                     : "UPDATE multiplayer_rooms 
                        SET guest_hp = :newHp,
+                           guest_streak = 0,
                            last_event_msg = :msg
                        WHERE room_code = :code";
 
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute([
                     ':newHp' => $newHp,
-                    ':msg'   => "💔 {$playerName} answered wrong and lost 1 Health Bar! ({$newHp}/3 HP left)",
+                    ':msg'   => "💔 {$playerName} answered wrong! Streak reset & lost 1 HP ({$newHp}/3 HP left)",
                     ':code'  => $room['room_code']
                 ]);
             }
@@ -238,6 +276,8 @@ class MultiplayerModel
                 guest_hp = 3,
                 host_score = 0,
                 guest_score = 0,
+                host_streak = 0,
+                guest_streak = 0,
                 status = 'playing',
                 winner = NULL,
                 puzzle_number = 1,
