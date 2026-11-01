@@ -50,9 +50,11 @@ require_once __DIR__ . '/helpers/JWT.php';
 require_once __DIR__ . '/middleware/AuthMiddleware.php';
 require_once __DIR__ . '/models/UserModel.php';
 require_once __DIR__ . '/models/ScoreModel.php';
+require_once __DIR__ . '/models/MultiplayerModel.php';
 require_once __DIR__ . '/controllers/AuthController.php';
 require_once __DIR__ . '/controllers/GameController.php';
 require_once __DIR__ . '/controllers/LeaderboardController.php';
+require_once __DIR__ . '/controllers/MultiplayerController.php';
 require_once __DIR__ . '/services/BananaService.php';
 
 // Initialize JWT with secret key for Virtual Identity authentication
@@ -105,6 +107,23 @@ try {
 
         case $route === 'game/verify' && $method === 'POST':
             (new GameController())->verifyAnswer();
+            break;
+
+        // [EVENT-DRIVEN MULTIPLAYER] 1v1 Versus Endpoints (/api/multiplayer)
+        case $route === 'multiplayer/create' && $method === 'POST':
+            (new MultiplayerController())->create();
+            break;
+
+        case $route === 'multiplayer/join' && $method === 'POST':
+            (new MultiplayerController())->join();
+            break;
+
+        case $route === 'multiplayer/status' && $method === 'GET':
+            (new MultiplayerController())->status();
+            break;
+
+        case $route === 'multiplayer/action' && $method === 'POST':
+            (new MultiplayerController())->action();
             break;
 
         // [VERSION CONTROL] Leaderboard & Persistence Endpoints (/api/leaderboard)

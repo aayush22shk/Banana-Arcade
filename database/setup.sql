@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS scores (
     user_id INT NOT NULL,
     username VARCHAR(50) NOT NULL,
     avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
+    difficulty VARCHAR(20) DEFAULT 'medium' NOT NULL,
     score INT NOT NULL,
     puzzles_solved INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -36,3 +37,29 @@ CREATE TABLE IF NOT EXISTS scores (
 -- Performance index for leaderboard queries
 CREATE INDEX idx_scores_ranking ON scores (score DESC, created_at ASC);
 CREATE INDEX idx_scores_user ON scores (user_id);
+CREATE INDEX idx_scores_difficulty ON scores (difficulty, score DESC);
+
+-- [EVENT-DRIVEN MULTIPLAYER] Multiplayer Rooms Table: Real-Time 1v1 Battle Arena
+CREATE TABLE IF NOT EXISTS multiplayer_rooms (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_code VARCHAR(10) UNIQUE NOT NULL,
+    status VARCHAR(20) DEFAULT 'waiting' NOT NULL,
+    host_name VARCHAR(50) NOT NULL,
+    host_avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
+    host_hp INT DEFAULT 3 NOT NULL,
+    host_score INT DEFAULT 0 NOT NULL,
+    guest_name VARCHAR(50) NULL,
+    guest_avatar VARCHAR(50) DEFAULT 'avatar-2' NOT NULL,
+    guest_hp INT DEFAULT 3 NOT NULL,
+    guest_score INT DEFAULT 0 NOT NULL,
+    current_puzzle_question TEXT NULL,
+    current_puzzle_solution INT NULL,
+    puzzle_number INT DEFAULT 1 NOT NULL,
+    last_event_msg VARCHAR(255) NULL,
+    winner VARCHAR(50) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_room_code ON multiplayer_rooms (room_code);
+

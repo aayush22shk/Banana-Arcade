@@ -57,16 +57,24 @@ All source files contain explicit tags pointing to these core grading criteria:
 - **Tag:** `// [INTEROPERABILITY]`
 - **Implementation:** The PHP / Apache backend acts as an interoperability proxy between the client browser and the University Banana API. This eliminates Cross-Origin (CORS) image loading issues, generates tamper-proof signed puzzle verification tokens using JWT, and ensures graceful exception handling.
 
-### 2. Event-Driven Programming
-- **Code Reference:** `public/js/app.js`, `public/js/auth.js`
+### 2. Event-Driven Programming & Dynamic Difficulty Engine
+- **Code Reference:** `public/js/app.js`, `public/js/auth.js`, `api/models/ScoreModel.php`, `api/controllers/LeaderboardController.php`
 - **Tag:** `// [EVENT-DRIVEN PROGRAMMING]`
 - **Implementation:**
-  - **Timed Game Loop:** A 30-second interval timer triggered by the `btn-start-game` click event, with visual countdown progress and urgent pulse effects under 10 seconds.
+  - **Dynamic Difficulty Modes (Easy, Medium, Hard):**
+    - 🟢 **Easy Mode:** 45-second clock, +3s time bonus on each correct answer, 0 penalty on mistakes. Relaxed pacing for beginners.
+    - 🟡 **Medium Mode:** 30-second clock, +1.5s time bonus, -2s & -5pts penalties on mistakes. Classic arcade balance.
+    - 🔴 **Hard Mode:** 20-second blitz countdown, brutal -4s & -15pts penalties on wrong answers, up to 10x combo multipliers for extreme high scores!
+  - **Adaptive Difficulty Scaling (Increases & Decreases Dynamically):**
+    - Real-time in-game intensity escalates (`LVL 1` → `LVL 2` → `LVL 3` → `LVL 4 Overdrive`) as streaks build up, boosting score multipliers.
+    - In-game intensity dynamically cools down on mistakes or skips to allow player recovery.
+  - **Timed Game Loop:** Event-driven countdown interval triggered by the `btn-start-game` click event, with visual countdown progress, mode-specific ambient CRT lighting, and urgent pulse effects under 10 seconds.
   - **GUI Event Listeners:**
+    - Interactive difficulty mode buttons and steppers (`◀ Easier` / `Harder ▶`).
     - Click events on the interactive 0-9 numeric arcade keypad.
-    - Submit Answer button click and `Enter` keypress detection on the physical keyboard.
-    - Tab navigation click handlers for smooth view transitions (Game, Leaderboard, Account).
-  - **Reactive UI Updates:** Dynamic score updates with combo multipliers (`1x`, `2x`, `3x`, `5x` on streaks), visual screen glow/shake on correct/incorrect answers, and instant next-puzzle pre-caching.
+    - Submit Answer button click and `Enter` keypress detection on physical keyboard.
+    - Tab navigation click handlers and Leaderboard difficulty filters (`All`, `Easy`, `Medium`, `Hard`).
+  - **Reactive UI Updates:** Dynamic score updates with mode-tailored combo multipliers, visual screen glow/shake on correct/incorrect answers, and instant next-puzzle pre-caching.
   - **Audio Synthesis:** Zero-dependency sound effects built directly on the browser's `AudioContext` (Web Audio API).
 
 ### 3. Virtual Identity & Security

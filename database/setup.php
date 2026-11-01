@@ -10,10 +10,10 @@
 
 header('Content-Type: text/html; charset=utf-8');
 
-$host     = 'localhost';
+$host = 'localhost';
 $username = 'root';
 $password = '';
-$dbName   = 'banana_arcade';
+$dbName = 'banana_arcade';
 
 echo "<h1>🍌 Banana Arcade - Database Setup</h1>";
 echo "<pre style='background:#1a1a2e;color:#00f2fe;padding:20px;border-radius:10px;font-size:14px;'>";
@@ -76,6 +76,14 @@ try {
         // Column already exists
     }
 
+    // Auto-migrate difficulty column in scores table if missing
+    try {
+        $pdo->exec("ALTER TABLE scores ADD COLUMN difficulty VARCHAR(20) DEFAULT 'medium' NOT NULL");
+        echo "[✓] Migrated 'difficulty' column into scores table.\n";
+    } catch (PDOException $e) {
+        // Column already exists
+    }
+
     // Create indexes (ignore if already exist)
     try {
         $pdo->exec("CREATE INDEX idx_scores_ranking ON scores (score DESC, created_at ASC)");
@@ -89,6 +97,45 @@ try {
         echo "[✓] User score index created.\n";
     } catch (PDOException $e) {
         echo "[~] User score index already exists (skipped).\n";
+    }
+
+    try {
+        $pdo->exec("CREATE INDEX idx_scores_difficulty ON scores (difficulty, score DESC)");
+        echo "[✓] Difficulty ranking index created.\n";
+    } catch (PDOException $e) {
+        echo "[~] Difficulty ranking index already exists (skipped).\n";
+    }
+
+    // Create multiplayer_rooms table
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS multiplayer_rooms (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            room_code VARCHAR(10) UNIQUE NOT NULL,
+            status VARCHAR(20) DEFAULT 'waiting' NOT NULL,
+            host_name VARCHAR(50) NOT NULL,
+            host_avatar VARCHAR(50) DEFAULT 'avatar-1' NOT NULL,
+            host_hp INT DEFAULT 3 NOT NULL,
+            host_score INT DEFAULT 0 NOT NULL,
+            guest_name VARCHAR(50) NULL,
+            guest_avatar VARCHAR(50) DEFAULT 'avatar-2' NOT NULL,
+            guest_hp INT DEFAULT 3 NOT NULL,
+            guest_score INT DEFAULT 0 NOT NULL,
+            current_puzzle_question TEXT NULL,
+            current_puzzle_solution INT NULL,
+            puzzle_number INT DEFAULT 1 NOT NULL,
+            last_event_msg VARCHAR(255) NULL,
+            winner VARCHAR(50) NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB
+    ");
+    echo "[✓] Multiplayer Rooms table initialized.\n";
+
+    try {
+        $pdo->exec("CREATE INDEX idx_room_code ON multiplayer_rooms (room_code)");
+        echo "[✓] Multiplayer room_code index created.\n";
+    } catch (PDOException $e) {
+        // Index exists
     }
 
     echo "\n====================================================\n";

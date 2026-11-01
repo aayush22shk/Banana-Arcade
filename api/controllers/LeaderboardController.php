@@ -30,6 +30,7 @@ class LeaderboardController
             $data           = json_decode(file_get_contents('php://input'), true);
             $score          = isset($data['score']) ? (int) $data['score'] : -1;
             $puzzlesSolved  = isset($data['puzzlesSolved']) ? (int) $data['puzzlesSolved'] : 0;
+            $difficulty     = isset($data['difficulty']) ? (string) $data['difficulty'] : 'medium';
 
             // Validate score
             if ($score < 0 || !is_numeric($data['score'] ?? '')) {
@@ -41,19 +42,20 @@ class LeaderboardController
                 return;
             }
 
-            // Persist score in MySQL database with player's avatar
+            // Persist score in MySQL database with player's avatar and difficulty mode
             $avatar = $authUser['avatar'] ?? 'avatar-1';
             $savedRecord = $this->scoreModel->recordScore(
                 (int) $authUser['id'],
                 $authUser['username'],
                 $score,
                 $puzzlesSolved,
-                $avatar
+                $avatar,
+                $difficulty
             );
 
             // Fetch updated user stats and global top scores
             $userStats = $this->scoreModel->getUserHighScore((int) $authUser['id']);
-            $topScores = $this->scoreModel->getTopScores(10);
+            $topScores = $this->scoreModel->getTopScores(10, $difficulty);
 
             http_response_code(201);
             echo json_encode([
@@ -76,16 +78,21 @@ class LeaderboardController
 
     /**
      * GET /api/leaderboard
-     * Public endpoint: Returns top 10 global scores sorted in descending order.
+     * Public endpoint: Returns top 10 global scores, with optional difficulty filter (?difficulty=easy|medium|hard).
      */
     public function getLeaderboard(): void
     {
         try {
-            $topScores = $this->scoreModel->getTopScores(10);
+            $difficulty = isset($_GET['difficulty']) && !empty($_GET['difficulty'])
+                ? (string) $_GET['difficulty']
+                : null;
+
+            $topScores = $this->scoreModel->getTopScores(10, $difficulty);
 
             http_response_code(200);
             echo json_encode([
                 'success'     => true,
+                'difficulty'  => $difficulty ?? 'all',
                 'leaderboard' => $topScores
             ]);
 

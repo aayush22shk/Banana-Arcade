@@ -12,19 +12,78 @@
  */
 
 const App = {
+  // Configured Difficulty Modes
+  DIFFICULTIES: {
+    easy: {
+      id: 'easy',
+      name: 'Easy',
+      badge: '🟢 EASY',
+      icon: '🟢',
+      initialTime: 45,
+      correctPoints: 10,
+      correctTimeBonus: 3,     // +3 seconds added on correct answer
+      wrongTimePenalty: 0,     // 0s lost on mistakes
+      wrongScorePenalty: 0,    // 0 pts lost on mistakes
+      skipPenalty: 2,
+      multipliers: [1, 1.5, 2, 3],
+      color: '#00e676',
+      timerDesc: '45-second relaxed clock with +3s time bonuses per correct answer.',
+      comboDesc: 'Gentle combo multipliers (up to 3x) and zero penalties on mistakes.',
+      summary: '<strong>🟢 Easy Mode:</strong> 45s clock &bull; +3s per solve &bull; No wrong penalty &bull; Ideal for training.'
+    },
+    medium: {
+      id: 'medium',
+      name: 'Medium',
+      badge: '🟡 MEDIUM',
+      icon: '🟡',
+      initialTime: 30,
+      correctPoints: 20,
+      correctTimeBonus: 1.5,   // +1.5s added on correct
+      wrongTimePenalty: 2,     // -2s lost on mistakes
+      wrongScorePenalty: 5,    // -5 pts on mistakes
+      skipPenalty: 5,
+      multipliers: [1, 2, 3, 5],
+      color: '#ffe135',
+      timerDesc: '30-second standard clock with +1.5s time bonuses & -2s penalties.',
+      comboDesc: 'Classic arcade multipliers (up to 5x) with standard risk/reward.',
+      summary: '<strong>🟡 Medium Mode:</strong> 30s clock &bull; +1.5s per solve &bull; -2s on wrong &bull; Classic arcade balance.'
+    },
+    hard: {
+      id: 'hard',
+      name: 'Hard',
+      badge: '🔴 HARD',
+      icon: '🔴',
+      initialTime: 20,
+      correctPoints: 35,
+      correctTimeBonus: 1,     // +1s bonus only on streak >= 2
+      wrongTimePenalty: 4,     // -4s lost on mistakes!
+      wrongScorePenalty: 15,   // -15 pts on mistakes!
+      skipPenalty: 10,
+      multipliers: [1, 2, 4, 8, 10],
+      color: '#ff0844',
+      timerDesc: '20-second blitz countdown with brutal -4s mistake penalties.',
+      comboDesc: 'High-stakes multipliers (up to 10x!) for elite arcade masters.',
+      summary: '<strong>🔴 Hard Mode:</strong> 20s blitz timer &bull; -4s & -15pts on mistakes &bull; Massive 10x combo potential!'
+    }
+  },
+
   // Game State
   state: {
     isPlaying: false,
+    difficulty: localStorage.getItem('banana_arcade_difficulty') || 'medium',
+    intensityLevel: 1, // Dynamic adaptive difficulty level (increases on streaks, decreases on mistakes)
     score: 0,
     streak: 0,
     multiplier: 1,
     puzzlesSolved: 0,
     totalAttempts: 0,
     timeLeft: 30,
+    maxTime: 30,
     timerInterval: null,
     currentPuzzle: null,
     isVerifying: false,
-    soundEnabled: true
+    soundEnabled: true,
+    leaderboardFilter: 'all'
   },
 
   // Audio Context for Web Audio API synthesis
@@ -37,8 +96,10 @@ const App = {
     this.initAudio();
     this.bindNavigationEvents();
     this.bindGameEvents();
+    this.bindDifficultyEvents();
     this.bindKeypadEvents();
     this.bindKeyboardShortcuts();
+    this.updateDifficultyUI();
     this.showView('game');
     this.loadLeaderboard();
   },
@@ -156,10 +217,67 @@ const App = {
     if (soundBtn) {
       soundBtn.addEventListener('click', () => {
         this.state.soundEnabled = !this.state.soundEnabled;
-        soundBtn.textContent = this.state.soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
-        soundBtn.classList.toggle('muted', !this.state.soundEnabled);
+        this.syncSoundUI();
       });
     }
+
+    // Settings view: Sound toggle switch
+    const settingsSoundToggle = document.getElementById('settings-toggle-sound');
+    if (settingsSoundToggle) {
+      settingsSoundToggle.addEventListener('click', () => {
+        this.state.soundEnabled = !this.state.soundEnabled;
+        this.syncSoundUI();
+        if (this.state.soundEnabled) this.playSound('correct');
+      });
+    }
+
+    // Settings view: SFX test station
+    document.querySelectorAll('.btn-sfx-test').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const sfx = btn.dataset.sfx;
+        if (sfx) this.playSound(sfx);
+      });
+    });
+
+    // Settings view: Default difficulty selector
+    document.querySelectorAll('.settings-diff-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const diff = pill.dataset.diff;
+        if (diff) {
+          this.selectDifficulty(diff);
+          this.syncSettingsUI();
+        }
+      });
+    });
+  },
+
+  /**
+   * Synchronizes sound toggle UI elements across header and settings
+   */
+  syncSoundUI() {
+    const soundBtn = document.getElementById('btn-toggle-sound');
+    if (soundBtn) {
+      soundBtn.textContent = this.state.soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
+      soundBtn.classList.toggle('muted', !this.state.soundEnabled);
+    }
+    const settingsToggle = document.getElementById('settings-toggle-sound');
+    const settingsText   = document.getElementById('settings-sound-text');
+    if (settingsToggle) {
+      settingsToggle.classList.toggle('active', this.state.soundEnabled);
+    }
+    if (settingsText) {
+      settingsText.textContent = this.state.soundEnabled ? 'SOUND: ON' : 'SOUND: MUTED';
+    }
+  },
+
+  /**
+   * Synchronizes settings panel controls to current application state
+   */
+  syncSettingsUI() {
+    this.syncSoundUI();
+    document.querySelectorAll('.settings-diff-pill').forEach(pill => {
+      pill.classList.toggle('active', pill.dataset.diff === this.state.difficulty);
+    });
   },
 
   /**
@@ -183,8 +301,27 @@ const App = {
       }
     });
 
+    // Update main dashboard hub buttons
+    const hubButtons = document.querySelectorAll('.dash-hub-btn');
+    hubButtons.forEach(hb => {
+      if (hb.dataset.viewTarget === viewName) {
+        hb.classList.add('active');
+      } else {
+        hb.classList.remove('active');
+      }
+    });
+
     if (viewName === 'leaderboard') {
       this.loadLeaderboard();
+    }
+
+    if (viewName === 'settings') {
+      this.syncSettingsUI();
+    }
+
+    // Refresh multiplayer lobby identity when switching to multiplayer view
+    if (viewName === 'multiplayer' && window.Multiplayer) {
+      Multiplayer._refreshLobbyIdentity();
     }
   },
 
@@ -223,10 +360,13 @@ const App = {
     if (skipBtn) {
       skipBtn.addEventListener('click', () => {
         if (!this.state.isPlaying) return;
-        this.showFeedback('SKIPPED! (-5 pts)', 'warning');
-        this.state.score = Math.max(0, this.state.score - 5);
+        const cfg = this.DIFFICULTIES[this.state.difficulty] || this.DIFFICULTIES.medium;
+        const penalty = cfg.skipPenalty || 5;
+        this.showFeedback(`SKIPPED! (-${penalty} pts)`, 'warning');
+        this.state.score = Math.max(0, this.state.score - penalty);
         this.state.streak = 0;
         this.state.multiplier = 1;
+        this.decreaseIntensity();
         this.updateHUD();
         this.fetchNextPuzzle();
       });
@@ -240,6 +380,108 @@ const App = {
         if (modal) modal.classList.add('hidden');
         this.resetGame();
       });
+    }
+  },
+
+  /**
+   * [EVENT-DRIVEN PROGRAMMING] Binds Difficulty mode selectors and hero cards
+   */
+  bindDifficultyEvents() {
+    const selector = document.getElementById('difficulty-selector');
+    if (selector) {
+      selector.addEventListener('click', (e) => {
+        // Direct launch button on specific mode card clicked
+        const launchBtn = e.target.closest('[data-launch-diff]');
+        if (launchBtn) {
+          e.stopPropagation();
+          const diff = launchBtn.dataset.launchDiff;
+          if (diff) {
+            this.setDifficulty(diff);
+            this.startGame();
+          }
+          return;
+        }
+
+        // Card clicked to select mode
+        const card = e.target.closest('.diff-hero-card');
+        if (card) {
+          const diff = card.dataset.difficulty;
+          if (diff) this.setDifficulty(diff);
+        }
+      });
+    }
+
+    // Leaderboard Filter Buttons
+    const filterContainer = document.getElementById('leaderboard-filters');
+    if (filterContainer) {
+      filterContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('.diff-filter-btn');
+        if (!btn) return;
+        const filter = btn.dataset.filter || 'all';
+        this.loadLeaderboard(filter);
+      });
+    }
+  },
+
+  /**
+   * Switches difficulty mode and saves preference
+   */
+  setDifficulty(mode) {
+    if (!this.DIFFICULTIES[mode]) return;
+    this.state.difficulty = mode;
+    localStorage.setItem('banana_arcade_difficulty', mode);
+    this.playSound('tick');
+    this.updateDifficultyUI();
+  },
+
+  /**
+   * Dynamically increases in-game adaptive intensity level based on streaks
+   */
+  increaseIntensity() {
+    const prev = this.state.intensityLevel;
+    if (this.state.streak >= 9) {
+      this.state.intensityLevel = 4;
+    } else if (this.state.streak >= 6) {
+      this.state.intensityLevel = 3;
+    } else if (this.state.streak >= 3) {
+      this.state.intensityLevel = 2;
+    }
+
+    if (this.state.intensityLevel > prev) {
+      this.playSound('correct');
+      this.showFeedback(`⚡ INTENSITY UP! LEVEL ${this.state.intensityLevel} (+${(this.state.intensityLevel - 1) * 15}% PTS)`, 'success');
+      this.updateHUD();
+    }
+  },
+
+  /**
+   * Dynamically cools down in-game adaptive intensity level on error/skip
+   */
+  decreaseIntensity() {
+    if (this.state.intensityLevel > 1) {
+      this.state.intensityLevel--;
+      this.showFeedback(`❄️ DIFFICULTY COOLED: LEVEL ${this.state.intensityLevel}`, 'info');
+      this.updateHUD();
+    }
+  },
+
+  /**
+   * Updates Pre-game screen difficulty hero cards and launch button text
+   */
+  updateDifficultyUI() {
+    const current = this.state.difficulty;
+    const cfg = this.DIFFICULTIES[current];
+    if (!cfg) return;
+
+    // Update active hero card state
+    document.querySelectorAll('.diff-hero-card').forEach(card => {
+      card.classList.toggle('active', card.dataset.difficulty === current);
+    });
+
+    // Update main launch button label with selected mode and timer
+    const startLabel = document.getElementById('btn-start-label');
+    if (startLabel) {
+      startLabel.textContent = `START GAME IN ${cfg.badge} MODE (${cfg.initialTime}s)`;
     }
   },
 
@@ -324,19 +566,23 @@ const App = {
   },
 
   /**
-   * [EVENT-DRIVEN PROGRAMMING] Starts the 30-Second Timed Game Loop
+   * [EVENT-DRIVEN PROGRAMMING] Starts the Dynamic Timed Game Loop
    */
   startGame() {
     this.playSound('start');
 
-    // Reset game state
+    const cfg = this.DIFFICULTIES[this.state.difficulty] || this.DIFFICULTIES.medium;
+
+    // Reset game state configured by selected Difficulty Mode
     this.state.isPlaying = true;
     this.state.score = 0;
     this.state.streak = 0;
     this.state.multiplier = 1;
     this.state.puzzlesSolved = 0;
     this.state.totalAttempts = 0;
-    this.state.timeLeft = 30;
+    this.state.timeLeft = cfg.initialTime;
+    this.state.maxTime = cfg.initialTime;
+    this.state.intensityLevel = 1;
     this.state.isVerifying = false;
 
     // Toggle HUD & screens
@@ -345,10 +591,18 @@ const App = {
     const modal = document.getElementById('modal-gameover');
     if (modal) modal.classList.add('hidden');
 
+    // Apply CRT theme mode classes
+    const crt = document.getElementById('crt-monitor');
+    if (crt) {
+      crt.classList.remove('mode-easy', 'mode-hard');
+      if (this.state.difficulty === 'hard') crt.classList.add('mode-hard');
+      if (this.state.difficulty === 'easy') crt.classList.add('mode-easy');
+    }
+
     this.updateHUD();
     this.fetchNextPuzzle();
 
-    // Start 30-Second Countdown Interval Loop
+    // Start Dynamic Countdown Interval Loop
     clearInterval(this.state.timerInterval);
     this.state.timerInterval = setInterval(() => {
       this.state.timeLeft -= 1;
@@ -418,7 +672,7 @@ const App = {
   },
 
   /**
-   * [EVENT-DRIVEN PROGRAMMING] Verifies submitted player answer & executes reactive UI updates
+   * [EVENT-DRIVEN PROGRAMMING] Verifies submitted player answer & executes reactive UI updates with mode scaling
    */
   handleAnswerSubmission() {
     if (!this.state.isPlaying || this.state.isVerifying) return;
@@ -435,6 +689,7 @@ const App = {
 
     const numericAnswer = parseInt(answer, 10);
     const expected = parseInt(this.state.currentPuzzle.solution, 10);
+    const cfg = this.DIFFICULTIES[this.state.difficulty] || this.DIFFICULTIES.medium;
 
     this.state.totalAttempts++;
 
@@ -445,16 +700,27 @@ const App = {
       this.state.streak++;
       this.state.puzzlesSolved++;
 
-      // Progressive combo multiplier: 1x -> 2x -> 3x -> 5x
-      if (this.state.streak >= 8) this.state.multiplier = 5;
-      else if (this.state.streak >= 5) this.state.multiplier = 3;
-      else if (this.state.streak >= 2) this.state.multiplier = 2;
-      else this.state.multiplier = 1;
+      // Dynamic time bonus added to clock
+      if (cfg.correctTimeBonus > 0) {
+        this.state.timeLeft = Math.min(this.state.maxTime + 15, this.state.timeLeft + cfg.correctTimeBonus);
+      }
 
-      const pointsEarned = 10 * this.state.multiplier;
+      // Mode multipliers
+      const mList = cfg.multipliers;
+      if (this.state.streak >= 8) this.state.multiplier = mList[mList.length - 1];
+      else if (this.state.streak >= 5) this.state.multiplier = mList[Math.min(3, mList.length - 1)];
+      else if (this.state.streak >= 2) this.state.multiplier = mList[1];
+      else this.state.multiplier = mList[0];
+
+      // Adaptive dynamic intensity escalation on winning streaks
+      this.increaseIntensity();
+
+      const intensityBonus = 1 + (this.state.intensityLevel - 1) * 0.15;
+      const pointsEarned = Math.round(cfg.correctPoints * this.state.multiplier * intensityBonus);
       this.state.score += pointsEarned;
 
-      this.showFeedback(`+${pointsEarned} PTS! ${this.state.multiplier > 1 ? `(${this.state.multiplier}x COMBO!)` : 'CORRECT!'} 🍌`, 'success');
+      const bonusNote = cfg.correctTimeBonus > 0 ? ` (+${cfg.correctTimeBonus}s)` : '';
+      this.showFeedback(`+${pointsEarned} PTS! ${this.state.multiplier > 1 ? `(${this.state.multiplier}x COMBO!)` : 'CORRECT!'} 🍌${bonusNote}`, 'success');
       this.triggerScreenEffect('correct');
 
     } else {
@@ -462,7 +728,24 @@ const App = {
       this.playSound('wrong');
       this.state.streak = 0;
       this.state.multiplier = 1;
-      this.showFeedback(`WRONG! Answer was ${expected}`, 'error');
+
+      // Mode penalties for wrong answer
+      if (cfg.wrongTimePenalty > 0) {
+        this.state.timeLeft = Math.max(0, this.state.timeLeft - cfg.wrongTimePenalty);
+      }
+      if (cfg.wrongScorePenalty > 0) {
+        this.state.score = Math.max(0, this.state.score - cfg.wrongScorePenalty);
+      }
+
+      // Adaptive difficulty cools down
+      this.decreaseIntensity();
+
+      const penaltyParts = [];
+      if (cfg.wrongTimePenalty > 0) penaltyParts.push(`-${cfg.wrongTimePenalty}s`);
+      if (cfg.wrongScorePenalty > 0) penaltyParts.push(`-${cfg.wrongScorePenalty}pts`);
+      const penaltyMsg = penaltyParts.length ? ` (${penaltyParts.join(' / ')})` : '';
+
+      this.showFeedback(`WRONG! Answer was ${expected}${penaltyMsg}`, 'error');
       this.triggerScreenEffect('wrong');
     }
 
@@ -473,12 +756,14 @@ const App = {
   },
 
   /**
-   * [EVENT-DRIVEN PROGRAMMING] Concludes the 30-Second Timed Session & Prompts Leaderboard Persistence
+   * [EVENT-DRIVEN PROGRAMMING] Concludes the Timed Session & Prompts Leaderboard Persistence
    */
   async endGame() {
     clearInterval(this.state.timerInterval);
     this.state.isPlaying = false;
     this.playSound('gameover');
+
+    const cfg = this.DIFFICULTIES[this.state.difficulty] || this.DIFFICULTIES.medium;
 
     // Display Game Over Modal
     const modal = document.getElementById('modal-gameover');
@@ -486,9 +771,13 @@ const App = {
     const puzzlesSolvedEl = document.getElementById('modal-puzzles-solved');
     const accuracyEl = document.getElementById('modal-accuracy');
     const leaderboardStatusEl = document.getElementById('modal-leaderboard-status');
+    const diffModalEl = document.getElementById('modal-difficulty-mode');
 
     if (finalScoreEl) finalScoreEl.textContent = this.state.score;
     if (puzzlesSolvedEl) puzzlesSolvedEl.textContent = this.state.puzzlesSolved;
+    if (diffModalEl) {
+      diffModalEl.innerHTML = `<span class="hud-diff-pill ${cfg.id}">${cfg.badge}</span>`;
+    }
 
     const accuracy = this.state.totalAttempts > 0 
       ? Math.round((this.state.puzzlesSolved / this.state.totalAttempts) * 100) 
@@ -505,14 +794,14 @@ const App = {
       }
 
       try {
-        const res = await Api.leaderboard.submit(this.state.score, this.state.puzzlesSolved);
+        const res = await Api.leaderboard.submit(this.state.score, this.state.puzzlesSolved, this.state.difficulty);
         if (leaderboardStatusEl) {
-          leaderboardStatusEl.textContent = `Score recorded! High Score: ${res.userStats?.high_score || this.state.score} pts`;
+          leaderboardStatusEl.textContent = `Score recorded (${cfg.name} Mode)! High Score: ${res.userStats?.high_score || this.state.score} pts`;
           leaderboardStatusEl.className = 'status-text success';
         }
         // Update user badge PB
         Auth.setCurrentUser({ ...Auth.currentUser, stats: res.userStats });
-        this.loadLeaderboard();
+        this.loadLeaderboard(this.state.leaderboardFilter || 'all');
       } catch (err) {
         if (leaderboardStatusEl) {
           leaderboardStatusEl.textContent = 'Failed to record score: ' + err.message;
@@ -549,12 +838,16 @@ const App = {
   },
 
   /**
-   * Updates HUD displays (Score, Multiplier, Streak, Puzzles)
+   * Updates HUD displays (Score, Multiplier, Streak, Puzzles, Difficulty, Intensity)
    */
   updateHUD() {
     const scoreVal = document.getElementById('hud-score-value');
     const streakVal = document.getElementById('hud-streak-value');
     const solvedVal = document.getElementById('hud-solved-value');
+    const diffBadge = document.getElementById('hud-diff-badge');
+    const intensityBadge = document.getElementById('hud-intensity-badge');
+
+    const cfg = this.DIFFICULTIES[this.state.difficulty] || this.DIFFICULTIES.medium;
 
     if (scoreVal) scoreVal.textContent = this.state.score;
     if (streakVal) {
@@ -562,6 +855,15 @@ const App = {
       streakVal.className = `streak-badge ${this.state.multiplier > 1 ? 'multiplier-active' : ''}`;
     }
     if (solvedVal) solvedVal.textContent = this.state.puzzlesSolved;
+
+    if (diffBadge) {
+      diffBadge.textContent = cfg.badge;
+      diffBadge.className = `hud-diff-pill ${cfg.id}`;
+    }
+
+    if (intensityBadge) {
+      intensityBadge.textContent = `LVL ${this.state.intensityLevel}`;
+    }
   },
 
   /**
@@ -570,9 +872,10 @@ const App = {
   updateTimerDisplay() {
     const timerValue = document.getElementById('hud-timer-value');
     const timerBar = document.getElementById('hud-timer-progress');
+    const maxT = this.state.maxTime || 30;
 
     if (timerValue) {
-      timerValue.textContent = `${this.state.timeLeft}s`;
+      timerValue.textContent = `${Math.ceil(this.state.timeLeft)}s`;
       if (this.state.timeLeft <= 10) {
         timerValue.classList.add('urgent');
       } else {
@@ -581,7 +884,7 @@ const App = {
     }
 
     if (timerBar) {
-      const percentage = Math.max(0, (this.state.timeLeft / 30) * 100);
+      const percentage = Math.max(0, Math.min(100, (this.state.timeLeft / maxT) * 100));
       timerBar.style.width = `${percentage}%`;
 
       if (this.state.timeLeft <= 10) {
@@ -629,20 +932,33 @@ const App = {
   },
 
   /**
-   * [VERSION CONTROL] Loads Top 10 Leaderboard from REST API
+   * [VERSION CONTROL] Loads Top 10 Leaderboard from REST API with difficulty filtering
    */
-  async loadLeaderboard() {
+  async loadLeaderboard(filter = null) {
     const tbody = document.getElementById('leaderboard-tbody');
     const emptyState = document.getElementById('leaderboard-empty');
     if (!tbody) return;
 
+    if (filter !== null) {
+      this.state.leaderboardFilter = filter;
+    }
+    const currentFilter = this.state.leaderboardFilter || 'all';
+
+    // Update filter buttons active styling
+    document.querySelectorAll('.diff-filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.filter === currentFilter);
+    });
+
     try {
-      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading top scores...</td></tr>';
-      const data = await Api.leaderboard.getTop();
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Loading top scores...</td></tr>';
+      const data = await Api.leaderboard.getTop(currentFilter);
 
       if (!data.leaderboard || data.leaderboard.length === 0) {
         tbody.innerHTML = '';
-        if (emptyState) emptyState.classList.remove('hidden');
+        if (emptyState) {
+          emptyState.classList.remove('hidden');
+          emptyState.innerHTML = `<p>No high scores recorded yet for <strong>${currentFilter.toUpperCase()}</strong> mode! Be the first player to submit a run.</p>`;
+        }
         return;
       }
 
@@ -657,12 +973,16 @@ const App = {
         const medalIcon = rank === 1 ? '🥇 ' : rank === 2 ? '🥈 ' : rank === 3 ? '🥉 ' : `#${rank}`;
         const dateStr = entry.created_at ? new Date(entry.created_at).toLocaleDateString() : 'Recent';
         const avatarHtml = window.AvatarHelper ? AvatarHelper.render(entry.avatar || 'avatar-1', 32, 'table-avatar-img') : '🍌';
+        const diffMode = (entry.difficulty || 'medium').toLowerCase();
 
         row.innerHTML = `
           <td class="rank-col"><strong>${medalIcon}</strong></td>
           <td class="table-avatar-cell">${avatarHtml}</td>
           <td class="player-col">
             <span class="player-pill">${this.escapeHTML(entry.username)}</span>
+          </td>
+          <td class="mode-col">
+            <span class="diff-table-pill ${diffMode}">${diffMode.toUpperCase()}</span>
           </td>
           <td class="score-col"><strong>${entry.score}</strong></td>
           <td class="puzzles-col">${entry.puzzles_solved || 0}</td>
@@ -672,7 +992,7 @@ const App = {
       });
 
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="6" class="text-center error">Failed to load leaderboard: ${err.message}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center error">Failed to load leaderboard: ${err.message}</td></tr>`;
     }
   },
 
@@ -692,4 +1012,8 @@ document.addEventListener('DOMContentLoaded', () => {
   window.App = App;
   App.init();
   Auth.init();
+  // [EVENT-DRIVEN MULTIPLAYER] Initialize multiplayer controller after all modules are loaded
+  if (window.Multiplayer) {
+    Multiplayer.init();
+  }
 });

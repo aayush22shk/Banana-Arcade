@@ -24,18 +24,22 @@ class ScoreModel
      * @param int $score Total arcade points scored
      * @param int $puzzlesSolved Number of Banana puzzles correctly solved
      * @param string $avatar Player avatar identifier
+     * @param string $difficulty Game difficulty mode ('easy', 'medium', 'hard')
      * @return array Saved score record
      */
-    public function recordScore(int $userId, string $username, int $score, int $puzzlesSolved = 0, string $avatar = 'avatar-1'): array
+    public function recordScore(int $userId, string $username, int $score, int $puzzlesSolved = 0, string $avatar = 'avatar-1', string $difficulty = 'medium'): array
     {
         $cleanAvatar = preg_match('/^avatar-(10|[1-9])$/', $avatar) ? $avatar : 'avatar-1';
+        $cleanDiff = in_array(strtolower($difficulty), ['easy', 'medium', 'hard'], true) ? strtolower($difficulty) : 'medium';
+
         $stmt = $this->db->prepare(
-            'INSERT INTO scores (user_id, username, avatar, score, puzzles_solved) VALUES (:user_id, :username, :avatar, :score, :puzzles_solved)'
+            'INSERT INTO scores (user_id, username, avatar, difficulty, score, puzzles_solved) VALUES (:user_id, :username, :avatar, :difficulty, :score, :puzzles_solved)'
         );
         $stmt->execute([
             ':user_id'        => $userId,
             ':username'       => $username,
             ':avatar'         => $cleanAvatar,
+            ':difficulty'     => $cleanDiff,
             ':score'          => $score,
             ':puzzles_solved' => $puzzlesSolved
         ]);
@@ -45,25 +49,39 @@ class ScoreModel
             'userId'        => $userId,
             'username'      => $username,
             'avatar'        => $cleanAvatar,
+            'difficulty'    => $cleanDiff,
             'score'         => $score,
             'puzzlesSolved' => $puzzlesSolved
         ];
     }
 
     /**
-     * Retrieves the global top high scores sorted descending
+     * Retrieves the global top high scores sorted descending, with optional difficulty filter
      * @param int $limit Number of top scores (default: 10)
-     * @return array List of top score records with avatar
+     * @param string|null $difficulty Optional difficulty filter ('easy', 'medium', 'hard')
+     * @return array List of top score records with avatar & difficulty
      */
-    public function getTopScores(int $limit = 10): array
+    public function getTopScores(int $limit = 10, ?string $difficulty = null): array
     {
-        $stmt = $this->db->prepare(
-            'SELECT s.id, s.user_id, s.username, COALESCE(u.avatar, s.avatar, "avatar-1") as avatar, s.score, s.puzzles_solved, s.created_at
-             FROM scores s
-             LEFT JOIN users u ON s.user_id = u.id
-             ORDER BY s.score DESC, s.created_at ASC
-             LIMIT :lim'
-        );
+        $cleanDiff = ($difficulty && in_array(strtolower($difficulty), ['easy', 'medium', 'hard'], true))
+            ? strtolower($difficulty)
+            : null;
+
+        $sql = 'SELECT s.id, s.user_id, s.username, COALESCE(u.avatar, s.avatar, "avatar-1") as avatar, 
+                       COALESCE(s.difficulty, "medium") as difficulty, s.score, s.puzzles_solved, s.created_at
+                FROM scores s
+                LEFT JOIN users u ON s.user_id = u.id';
+
+        if ($cleanDiff !== null) {
+            $sql .= ' WHERE s.difficulty = :difficulty';
+        }
+
+        $sql .= ' ORDER BY s.score DESC, s.created_at ASC LIMIT :lim';
+
+        $stmt = $this->db->prepare($sql);
+        if ($cleanDiff !== null) {
+            $stmt->bindValue(':difficulty', $cleanDiff, PDO::PARAM_STR);
+        }
         $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->execute();
 

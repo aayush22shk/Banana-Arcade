@@ -176,21 +176,66 @@ const Api = {
   // ==========================================
   leaderboard: {
     /**
-     * Retrieves global top 10 high scores
+     * Retrieves global top 10 high scores with optional difficulty filter
      */
-    async getTop() {
-      return await Api.request('/leaderboard', {
+    async getTop(difficulty = null) {
+      const qs = difficulty && difficulty !== 'all' ? `?difficulty=${encodeURIComponent(difficulty)}` : '';
+      return await Api.request(`/leaderboard${qs}`, {
         method: 'GET'
       });
     },
 
     /**
-     * [VIRTUAL IDENTITY] Submits high score to persistent MySQL database
+     * [VIRTUAL IDENTITY] Submits high score to persistent MySQL database with difficulty mode
      */
-    async submit(score, puzzlesSolved) {
+    async submit(score, puzzlesSolved, difficulty = 'medium') {
       return await Api.request('/leaderboard/submit', {
         method: 'POST',
-        body: JSON.stringify({ score, puzzlesSolved })
+        body: JSON.stringify({ score, puzzlesSolved, difficulty })
+      });
+    }
+  },
+
+  // ==========================================
+  // [EVENT-DRIVEN MULTIPLAYER] 1v1 Versus Arena
+  // ==========================================
+  multiplayer: {
+    /**
+     * Creates a new 1v1 battle room and returns unique code
+     */
+    async create(username, avatar) {
+      return await Api.request('/multiplayer/create', {
+        method: 'POST',
+        body: JSON.stringify({ username, avatar })
+      });
+    },
+
+    /**
+     * Joins an existing room by room code
+     */
+    async join(roomCode, username, avatar) {
+      return await Api.request('/multiplayer/join', {
+        method: 'POST',
+        body: JSON.stringify({ roomCode, username, avatar })
+      });
+    },
+
+    /**
+     * Polls the current room status
+     */
+    async getStatus(roomCode) {
+      return await Api.request(`/multiplayer/status?roomCode=${encodeURIComponent(roomCode)}`, {
+        method: 'GET'
+      });
+    },
+
+    /**
+     * Sends action (submit_answer, rematch, leave)
+     */
+    async sendAction(roomCode, role, action, data = {}) {
+      return await Api.request('/multiplayer/action', {
+        method: 'POST',
+        body: JSON.stringify({ roomCode, role, action, ...data })
       });
     }
   }
