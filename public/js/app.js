@@ -337,6 +337,7 @@ const App = {
           splash.classList.add('splash-fade-out');
           setTimeout(() => {
             splash.classList.add('hidden');
+            splash.style.display = 'none';
             this.navigateTo('screen-main-menu', false);
             this.playSound('start');
           }, 350);
@@ -648,7 +649,7 @@ const App = {
     };
     const targetScreen = map[viewName] || 'screen-main-menu';
     this.navigateTo(targetScreen);
-  },
+
     if (viewName === 'multiplayer' && window.Multiplayer) {
       Multiplayer._refreshLobbyIdentity();
     }

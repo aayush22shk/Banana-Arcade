@@ -3970,6 +3970,10 @@ body {
   pointer-events: none;
 }
 
+#screen-splash.hidden {
+  display: none !important;
+}
+
 /* Floating Banana Particles */
 .splash-bg-particles {
   position: absolute;
