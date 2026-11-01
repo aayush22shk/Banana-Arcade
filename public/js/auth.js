@@ -289,6 +289,11 @@ const Auth = {
       if (authProfileBox) authProfileBox.classList.add('hidden');
       this.renderRegisterAvatars();
     }
+
+    if (window.App) {
+      if (App.refreshMainMenuProfile) App.refreshMainMenuProfile();
+      if (App.refreshTopBarIdentity) App.refreshTopBarIdentity();
+    }
   },
 
   /**

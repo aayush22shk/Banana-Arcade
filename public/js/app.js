@@ -74,6 +74,7 @@ const App = {
     intensityLevel: 1, // Dynamic adaptive difficulty level (increases on streaks, decreases on mistakes)
     score: 0,
     streak: 0,
+    highestStreak: 0,
     multiplier: 1,
     puzzlesSolved: 0,
     totalAttempts: 0,
@@ -85,6 +86,10 @@ const App = {
     soundEnabled: true,
     leaderboardFilter: 'all'
   },
+
+  // Screen Navigation State
+  screenHistory: [],
+  currentScreen: 'screen-splash',
 
   // Audio Context for Web Audio API synthesis
   audioCtx: null,
@@ -100,7 +105,7 @@ const App = {
     this.bindKeypadEvents();
     this.bindKeyboardShortcuts();
     this.updateDifficultyUI();
-    this.showView('game');
+    this.initSplash();
     this.loadLeaderboard();
     if (window.AchievementManager) {
       AchievementManager.init();
@@ -288,18 +293,273 @@ const App = {
     }
   },
 
+  // ============================================================================
+  // [ARCADE SCREEN HIERARCHY & FLOW CONTROLLER]
+  // ============================================================================
+
+  /**
+   * Initializes the animated Loading / Splash Screen on launch
+   */
+  initSplash() {
+    const splash = document.getElementById('screen-splash');
+    const progressBar = document.getElementById('splash-progress-bar');
+    const statusText = document.getElementById('splash-status-text');
+    const startPrompt = document.getElementById('splash-start-prompt');
+
+    if (!splash) {
+      this.navigateTo('screen-main-menu', false);
+      return;
+    }
+
+    this.currentScreen = 'screen-splash';
+    this.updateTopBar('screen-splash');
+
+    const stages = [
+      { pct: 25, msg: 'Booting arcade sound synthesizer...' },
+      { pct: 55, msg: 'Connecting to University Banana Web API...' },
+      { pct: 85, msg: 'Syncing 18 arcade trophies & player records...' },
+      { pct: 100, msg: 'Arcade systems online! Get ready to play!' }
+    ];
+
+    let stageIdx = 0;
+    const interval = setInterval(() => {
+      if (stageIdx < stages.length) {
+        const stage = stages[stageIdx];
+        if (progressBar) progressBar.style.width = `${stage.pct}%`;
+        if (statusText) statusText.textContent = stage.msg;
+        stageIdx++;
+      } else {
+        clearInterval(interval);
+        if (startPrompt) startPrompt.classList.remove('hidden');
+
+        const finishSplash = () => {
+          splash.removeEventListener('click', finishSplash);
+          splash.classList.add('splash-fade-out');
+          setTimeout(() => {
+            splash.classList.add('hidden');
+            this.navigateTo('screen-main-menu', false);
+            this.playSound('start');
+          }, 350);
+        };
+
+        splash.addEventListener('click', finishSplash, { once: true });
+        setTimeout(finishSplash, 400);
+      }
+    }, 280);
+  },
+
+  /**
+   * Screen Navigation Controller with History Stack for Back Navigation
+   */
+  navigateTo(screenId, addToHistory = true) {
+    const target = document.getElementById(screenId);
+    if (!target) return;
+
+    if (addToHistory && this.currentScreen && this.currentScreen !== screenId && this.currentScreen !== 'screen-splash') {
+      this.screenHistory.push(this.currentScreen);
+    }
+
+    // Hide all game screens
+    document.querySelectorAll('.game-screen').forEach(screen => {
+      screen.classList.add('hidden');
+    });
+
+    // Reveal target screen
+    target.classList.remove('hidden');
+    this.currentScreen = screenId;
+
+    // Update top status bar state
+    this.updateTopBar(screenId);
+
+    // Screen-specific hooks & data refreshes
+    if (screenId === 'screen-main-menu') {
+      this.refreshMainMenuProfile();
+    } else if (screenId === 'screen-leaderboard') {
+      this.loadLeaderboard();
+    } else if (screenId === 'screen-settings') {
+      this.syncSettingsUI();
+    } else if (screenId === 'screen-trophies') {
+      if (window.AchievementManager) AchievementManager.fetchAchievements();
+    } else if (screenId === 'screen-mp-menu') {
+      if (window.Multiplayer) Multiplayer._refreshLobbyIdentity();
+    } else if (screenId === 'screen-profile') {
+      if (window.Auth && Auth.currentUser) Auth.updateUI(Auth.currentUser);
+    }
+  },
+
+  /**
+   * Navigates back to the previous screen in the stack
+   */
+  goBack() {
+    this.playSound('tick');
+    if (this.screenHistory.length > 0) {
+      const prev = this.screenHistory.pop();
+      this.navigateTo(prev, false);
+    } else {
+      this.navigateTo('screen-main-menu', false);
+    }
+  },
+
+  /**
+   * Updates Top Bar state based on active screen (distraction-free during gameplay)
+   */
+  updateTopBar(screenId) {
+    const topBar = document.getElementById('game-top-bar');
+    const backBtn = document.getElementById('btn-top-back');
+    if (!topBar) return;
+
+    // Splash screen or Active gameplay: Top Bar is hidden for full distraction-free arcade immersion
+    if (screenId === 'screen-splash' || screenId === 'screen-gameplay-solo' || screenId === 'screen-gameplay-mp') {
+      topBar.classList.add('hidden');
+    } else {
+      topBar.classList.remove('hidden');
+      if (backBtn) {
+        if (screenId === 'screen-main-menu') {
+          backBtn.classList.add('hidden');
+        } else {
+          backBtn.classList.remove('hidden');
+        }
+      }
+    }
+
+    this.refreshTopBarIdentity();
+  },
+
+  /**
+   * Synchronizes top bar identity chip with active player data
+   */
+  refreshTopBarIdentity() {
+    const user = (window.Auth && Auth.currentUser) ? Auth.currentUser : null;
+    const nameBadge = document.getElementById('badge-username');
+    const pbBadge = document.getElementById('badge-highscore');
+    const avatarBadge = document.getElementById('player-avatar');
+    const logoutBtn = document.getElementById('btn-logout');
+
+    if (nameBadge) nameBadge.textContent = user ? user.username : 'Guest Player';
+    if (pbBadge) pbBadge.textContent = `PB: ${user?.stats?.high_score || 0} pts`;
+    if (avatarBadge && window.AvatarHelper) {
+      const avatarId = user ? (user.avatar || 'avatar-1') : 'avatar-1';
+      avatarBadge.innerHTML = AvatarHelper.render(avatarId, 32);
+    }
+    if (logoutBtn) {
+      logoutBtn.classList.toggle('hidden', !user);
+    }
+  },
+
+  /**
+   * Synchronizes Main Menu hub player showcase with active player data
+   */
+  refreshMainMenuProfile() {
+    const user = (window.Auth && Auth.currentUser) ? Auth.currentUser : null;
+    const avatarEl = document.getElementById('menu-player-avatar');
+    const nameEl = document.getElementById('menu-player-name');
+    const statusEl = document.getElementById('menu-player-status');
+    const pbEl = document.getElementById('menu-player-pb');
+    const gamesEl = document.getElementById('menu-player-games');
+    const trophyEl = document.getElementById('menu-player-trophies');
+    const badgeEl = document.getElementById('menu-trophy-badge');
+
+    const username = user ? user.username : 'Guest Player';
+    const avatarId = user ? (user.avatar || 'avatar-1') : 'avatar-1';
+    const pb = user?.stats?.high_score || 0;
+    const games = user?.stats?.games_played || 0;
+
+    if (nameEl) nameEl.textContent = username;
+    if (statusEl) statusEl.textContent = user ? '🟢 Virtual Identity Active' : '👤 Guest (Progress saved locally)';
+    if (pbEl) pbEl.textContent = `${pb} pts`;
+    if (gamesEl) gamesEl.textContent = games;
+
+    if (avatarEl && window.AvatarHelper) {
+      avatarEl.innerHTML = AvatarHelper.render(avatarId, 52);
+    }
+
+    if (window.AchievementManager && AchievementManager.data) {
+      const unlocked = AchievementManager.data.totalUnlocked || 0;
+      const total = AchievementManager.data.totalAvailable || 18;
+      if (trophyEl) trophyEl.textContent = `${unlocked} / ${total}`;
+      if (badgeEl) badgeEl.textContent = `${unlocked} / ${total}`;
+    }
+
+    this.refreshTopBarIdentity();
+  },
+
+  /**
+   * Toggles Fullscreen Display Mode
+   */
+  toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.warn('Fullscreen error:', err);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  },
+
+  /**
+   * Quits active solo match with confirmation prompt
+   */
+  quitMatch() {
+    if (confirm('Quit current arcade game and return to the Main Menu?')) {
+      clearInterval(this.state.timerInterval);
+      this.state.isPlaying = false;
+      this.playSound('wrong');
+      this.navigateTo('screen-main-menu', false);
+    }
+  },
+
   /**
    * [EVENT-DRIVEN PROGRAMMING] Navigation View Switching Event Handlers
    */
   bindNavigationEvents() {
-    const navItems = document.querySelectorAll('[data-view-target]');
-    navItems.forEach(btn => {
+    // Screen Target navigation links
+    document.addEventListener('click', (e) => {
+      const targetBtn = e.target.closest('[data-screen-target]');
+      if (targetBtn) {
+        e.preventDefault();
+        const screenId = targetBtn.dataset.screenTarget;
+        this.navigateTo(screenId);
+        return;
+      }
+
+      // Universal Back Action
+      const backBtn = e.target.closest('[data-action="back"]');
+      if (backBtn) {
+        e.preventDefault();
+        this.goBack();
+        return;
+      }
+    });
+
+    // Legacy data-view-target compatibility
+    const legacyNavItems = document.querySelectorAll('[data-view-target]');
+    legacyNavItems.forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         const targetView = btn.dataset.viewTarget;
         this.showView(targetView);
       });
     });
+
+    // Top Bar Back button
+    const topBackBtn = document.getElementById('btn-top-back');
+    if (topBackBtn) {
+      topBackBtn.addEventListener('click', () => this.goBack());
+    }
+
+    // Fullscreen toggle button
+    const fsBtn = document.getElementById('btn-toggle-fullscreen');
+    if (fsBtn) {
+      fsBtn.addEventListener('click', () => this.toggleFullscreen());
+    }
+
+    // Solo Quit match button
+    const quitBtn = document.getElementById('btn-solo-quit');
+    if (quitBtn) {
+      quitBtn.addEventListener('click', () => this.quitMatch());
+    }
 
     // Sound toggle button listener
     const soundBtn = document.getElementById('btn-toggle-sound');
@@ -328,12 +588,12 @@ const App = {
       });
     });
 
-    // Settings view: Default difficulty selector
+    // Settings view: Default difficulty selector (FIXED METHOD CALL)
     document.querySelectorAll('.settings-diff-pill').forEach(pill => {
       pill.addEventListener('click', () => {
         const diff = pill.dataset.diff;
         if (diff) {
-          this.selectDifficulty(diff);
+          this.setDifficulty(diff);
           this.syncSettingsUI();
         }
       });
@@ -345,9 +605,12 @@ const App = {
    */
   syncSoundUI() {
     const soundBtn = document.getElementById('btn-toggle-sound');
+    const soundIcon = document.getElementById('sound-icon-symbol');
     if (soundBtn) {
-      soundBtn.textContent = this.state.soundEnabled ? '🔊 Sound: ON' : '🔇 Sound: OFF';
       soundBtn.classList.toggle('muted', !this.state.soundEnabled);
+    }
+    if (soundIcon) {
+      soundIcon.textContent = this.state.soundEnabled ? '🔊' : '🔇';
     }
     const settingsToggle = document.getElementById('settings-toggle-sound');
     const settingsText   = document.getElementById('settings-sound-text');
@@ -370,49 +633,22 @@ const App = {
   },
 
   /**
-   * Controls Single Page Application (SPA) view transitions
+   * Backwards Compatibility Adapter: Maps legacy view names to screen IDs
    */
   showView(viewName) {
-    const views = document.querySelectorAll('.view-section');
-    views.forEach(v => v.classList.add('hidden'));
-
-    const target = document.getElementById(`view-${viewName}`);
-    if (target) {
-      target.classList.remove('hidden');
-    }
-
-    const navButtons = document.querySelectorAll('.nav-link');
-    navButtons.forEach(nb => {
-      if (nb.dataset.viewTarget === viewName) {
-        nb.classList.add('active');
-      } else {
-        nb.classList.remove('active');
-      }
-    });
-
-    // Update main dashboard hub buttons
-    const hubButtons = document.querySelectorAll('.dash-hub-btn');
-    hubButtons.forEach(hb => {
-      if (hb.dataset.viewTarget === viewName) {
-        hb.classList.add('active');
-      } else {
-        hb.classList.remove('active');
-      }
-    });
-
-    if (viewName === 'leaderboard') {
-      this.loadLeaderboard();
-    }
-
-    if (viewName === 'settings') {
-      this.syncSettingsUI();
-    }
-
-    if (viewName === 'trophies' && window.AchievementManager) {
-      AchievementManager.fetchAchievements();
-    }
-
-    // Refresh multiplayer lobby identity when switching to multiplayer view
+    const map = {
+      game: 'screen-main-menu',
+      solo: 'screen-solo-difficulty',
+      pregame: 'screen-solo-difficulty',
+      multiplayer: 'screen-mp-menu',
+      trophies: 'screen-trophies',
+      settings: 'screen-settings',
+      leaderboard: 'screen-leaderboard',
+      auth: 'screen-profile'
+    };
+    const targetScreen = map[viewName] || 'screen-main-menu';
+    this.navigateTo(targetScreen);
+  },
     if (viewName === 'multiplayer' && window.Multiplayer) {
       Multiplayer._refreshLobbyIdentity();
     }
@@ -670,6 +906,7 @@ const App = {
     this.state.isPlaying = true;
     this.state.score = 0;
     this.state.streak = 0;
+    this.state.highestStreak = 0;
     this.state.multiplier = 1;
     this.state.puzzlesSolved = 0;
     this.state.totalAttempts = 0;
@@ -678,9 +915,9 @@ const App = {
     this.state.intensityLevel = 1;
     this.state.isVerifying = false;
 
-    // Toggle HUD & screens
-    document.getElementById('screen-pregame').classList.add('hidden');
-    document.getElementById('screen-active-game').classList.remove('hidden');
+    // Transition directly to Distraction-Free Solo Gameplay Screen
+    this.navigateTo('screen-gameplay-solo', true);
+
     const modal = document.getElementById('modal-gameover');
     if (modal) modal.classList.add('hidden');
 
@@ -791,6 +1028,7 @@ const App = {
       // CORRECT ANSWER!
       this.playSound('correct');
       this.state.streak++;
+      this.state.highestStreak = Math.max(this.state.highestStreak || 0, this.state.streak);
       this.state.puzzlesSolved++;
 
       // Dynamic time bonus added to clock
@@ -866,73 +1104,93 @@ const App = {
     this.state.isPlaying = false;
     this.playSound('gameover');
 
+    const maxStreak = this.state.highestStreak || this.state.streak || 0;
+
     // Record solo game completion for achievements
     if (window.AchievementManager) {
       AchievementManager.recordEvent('solo_game_completed', {
         score: this.state.score,
         puzzlesSolved: this.state.puzzlesSolved,
         attempts: this.state.totalAttempts,
-        streak: this.state.streak,
+        streak: maxStreak,
         difficulty: this.state.difficulty
       });
     }
 
     const cfg = this.DIFFICULTIES[this.state.difficulty] || this.DIFFICULTIES.medium;
+    const accuracy = this.state.totalAttempts > 0 
+      ? Math.round((this.state.puzzlesSolved / this.state.totalAttempts) * 100) 
+      : 0;
 
-    // Display Game Over Modal
+    // Populate Dedicated Solo Results Screen Elements
+    const resScore = document.getElementById('solo-res-score');
+    const resDiff = document.getElementById('solo-res-diff');
+    const resStreak = document.getElementById('solo-res-streak');
+    const resSolved = document.getElementById('solo-res-solved');
+    const resAccuracy = document.getElementById('solo-res-accuracy');
+    const resStatus = document.getElementById('solo-res-leaderboard-status');
+
+    if (resScore) resScore.textContent = this.state.score;
+    if (resDiff) resDiff.innerHTML = `<span class="hud-diff-pill ${cfg.id}">${cfg.badge}</span>`;
+    if (resStreak) resStreak.textContent = `${maxStreak} 🔥`;
+    if (resSolved) resSolved.textContent = this.state.puzzlesSolved;
+    if (resAccuracy) resAccuracy.textContent = `${accuracy}%`;
+
+    // Also populate legacy modal elements for fallback
     const modal = document.getElementById('modal-gameover');
     const finalScoreEl = document.getElementById('modal-final-score');
     const puzzlesSolvedEl = document.getElementById('modal-puzzles-solved');
     const accuracyEl = document.getElementById('modal-accuracy');
-    const leaderboardStatusEl = document.getElementById('modal-leaderboard-status');
     const diffModalEl = document.getElementById('modal-difficulty-mode');
 
     if (finalScoreEl) finalScoreEl.textContent = this.state.score;
     if (puzzlesSolvedEl) puzzlesSolvedEl.textContent = this.state.puzzlesSolved;
-    if (diffModalEl) {
-      diffModalEl.innerHTML = `<span class="hud-diff-pill ${cfg.id}">${cfg.badge}</span>`;
-    }
-
-    const accuracy = this.state.totalAttempts > 0 
-      ? Math.round((this.state.puzzlesSolved / this.state.totalAttempts) * 100) 
-      : 0;
+    if (diffModalEl) diffModalEl.innerHTML = `<span class="hud-diff-pill ${cfg.id}">${cfg.badge}</span>`;
     if (accuracyEl) accuracyEl.textContent = `${accuracy}%`;
 
-    if (modal) modal.classList.remove('hidden');
+    // Navigate to dedicated results screen
+    if (document.getElementById('screen-results-solo')) {
+      this.navigateTo('screen-results-solo', false);
+    } else if (modal) {
+      modal.classList.remove('hidden');
+    }
+
+    // Play again button binding on results screen
+    const playAgainBtn = document.getElementById('btn-solo-play-again');
+    if (playAgainBtn && !playAgainBtn._bound) {
+      playAgainBtn._bound = true;
+      playAgainBtn.addEventListener('click', () => {
+        this.startGame();
+      });
+    }
 
     // [VIRTUAL IDENTITY] Auto-persist score if player is authenticated
     if (Auth.currentUser && Api.getToken()) {
-      if (leaderboardStatusEl) {
-        leaderboardStatusEl.textContent = 'Saving high score to persistent database...';
-        leaderboardStatusEl.className = 'status-text saving';
-      }
+      const setStatus = (msg, cls) => {
+        if (resStatus) { resStatus.textContent = msg; resStatus.className = 'status-text ' + cls; }
+      };
+
+      setStatus('Saving high score to persistent database...', 'saving');
 
       try {
         const res = await Api.leaderboard.submit(this.state.score, this.state.puzzlesSolved, this.state.difficulty);
-        if (leaderboardStatusEl) {
-          leaderboardStatusEl.textContent = `Score recorded (${cfg.name} Mode)! High Score: ${res.userStats?.high_score || this.state.score} pts`;
-          leaderboardStatusEl.className = 'status-text success';
-        }
-        // Update user badge PB
+        setStatus(`Score recorded (${cfg.name} Mode)! High Score: ${res.userStats?.high_score || this.state.score} pts`, 'success');
+        
         Auth.setCurrentUser({ ...Auth.currentUser, stats: res.userStats });
         this.loadLeaderboard(this.state.leaderboardFilter || 'all');
       } catch (err) {
-        if (leaderboardStatusEl) {
-          leaderboardStatusEl.textContent = 'Failed to record score: ' + err.message;
-          leaderboardStatusEl.className = 'status-text error';
-        }
+        setStatus('Failed to record score: ' + err.message, 'error');
       }
     } else {
-      if (leaderboardStatusEl) {
-        leaderboardStatusEl.innerHTML = 'Playing as Guest. <a href="#" id="link-save-score">Log in or Register</a> to save high score to Global Leaderboard!';
-        leaderboardStatusEl.className = 'status-text guest';
+      if (resStatus) {
+        resStatus.innerHTML = 'Playing as Guest. <a href="#" id="link-save-score-solo">Log in or Register</a> to save high score to Global Leaderboard!';
+        resStatus.className = 'status-text guest';
 
-        const saveLink = document.getElementById('link-save-score');
+        const saveLink = document.getElementById('link-save-score-solo');
         if (saveLink) {
           saveLink.addEventListener('click', (e) => {
             e.preventDefault();
-            if (modal) modal.classList.add('hidden');
-            this.showView('auth');
+            this.navigateTo('screen-profile');
           });
         }
       }
@@ -1124,6 +1382,15 @@ const App = {
 // [EVENT-DRIVEN PROGRAMMING] Attach global initialization listener
 document.addEventListener('DOMContentLoaded', () => {
   window.App = App;
+
+  // Synthesizer Audio Bridge for Auth and submodules
+  window.Sound = {
+    playFanfare: () => App.playSound('start'),
+    playCorrect: () => App.playSound('correct'),
+    playIncorrect: () => App.playSound('wrong'),
+    playKeypad: () => App.playSound('tick')
+  };
+
   App.init();
   Auth.init();
   // [EVENT-DRIVEN MULTIPLAYER] Initialize multiplayer controller after all modules are loaded

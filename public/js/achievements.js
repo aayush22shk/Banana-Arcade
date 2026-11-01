@@ -176,6 +176,11 @@ const AchievementManager = {
     if (pctEl)   pctEl.textContent   = `${pct}% COMPLETED`;
     if (barEl)   barEl.style.width   = `${pct}%`;
 
+    const menuBadge = document.getElementById('menu-trophy-badge');
+    const menuTrophies = document.getElementById('menu-player-trophies');
+    if (menuBadge) menuBadge.textContent = `${unlocked} / ${total}`;
+    if (menuTrophies) menuTrophies.textContent = `${unlocked} / ${total}`;
+
     // Tier counts
     const tierCounts = { bronze: 0, silver: 0, gold: 0, platinum: 0 };
     (this.data.achievements || []).forEach(a => {

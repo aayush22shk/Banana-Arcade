@@ -940,9 +940,13 @@ const Multiplayer = {
       });
     }
 
-    // Show modal
-    const modal = document.getElementById('mp-modal-battleover');
-    if (modal) modal.classList.remove('hidden');
+    // Show dedicated results screen or modal
+    if (window.App && document.getElementById('screen-results-mp')) {
+      App.navigateTo('screen-results-mp', false);
+    } else {
+      const modal = document.getElementById('mp-modal-battleover');
+      if (modal) modal.classList.remove('hidden');
+    }
   },
 
   // ============================================================================
@@ -1114,6 +1118,17 @@ const Multiplayer = {
     const target = document.getElementById(`mp-screen-${name}`);
     if (target) target.classList.remove('hidden');
     this._currentScreenName = name;
+
+    // Connect with arcade screen flow
+    if (window.App && App.navigateTo) {
+      if (name === 'lobby') {
+        App.navigateTo('screen-mp-menu', false);
+      } else if (name === 'waiting') {
+        App.navigateTo('screen-mp-waiting', true);
+      } else if (name === 'arena') {
+        App.navigateTo('screen-gameplay-mp', true);
+      }
+    }
   },
 
   /**

@@ -5,787 +5,1114 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Banana Arcade | University Full-Stack Software Engineering</title>
   <meta name="description" content="Banana Arcade - Production-ready academic full-stack web application featuring University Banana API interoperability, JWT Virtual Identity, MySQL persistence, and an event-driven game engine.">
-  <link rel="stylesheet" href="css/styles.css?v=3.0">
+  <link rel="stylesheet" href="css/styles.css?v=4.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍌</text></svg>">
 </head>
 <body>
 
   <!-- ======================================================================
-       HEADER: Branding & Virtual Identity Navigation
+       ARCADE STATUS / TOP BAR (Sticky In-Game Status Bar)
+       Visible in menus and sub-screens, hidden in Splash and Active Gameplay
        ====================================================================== -->
-  <header class="header-container">
-    <a href="#" class="brand-section" data-view-target="game">
-      <span class="brand-logo-icon">🍌</span>
-      <div>
-        <h1 class="brand-title">BANANA ARCADE</h1>
-        <div class="brand-subtitle">University Engineering Project</div>
+  <header id="game-top-bar" class="game-top-bar hidden">
+    <div class="top-bar-left">
+      <!-- Universal Back Navigation Button -->
+      <button id="btn-top-back" class="btn-arcade-back hidden" title="Return to Previous Screen" data-action="back">
+        <span>⬅</span>
+        <span>BACK</span>
+      </button>
+
+      <!-- Brand Identity / Home Shortcut -->
+      <div class="top-bar-brand" id="top-bar-brand" data-screen-target="screen-main-menu">
+        <span class="top-brand-icon">🍌</span>
+        <span class="top-brand-text">BANANA ARCADE</span>
       </div>
-    </a>
+    </div>
 
-    <!-- SPA Navigation Links -->
-    <nav class="nav-links">
-      <button class="nav-link active" data-view-target="game" id="nav-btn-game">🎮 Solo Mode</button>
-      <button class="nav-link" data-view-target="multiplayer" id="nav-btn-multiplayer">⚔️ Multiplayer Mode</button>
-      <button class="nav-link" data-view-target="trophies" id="nav-btn-trophies">🏆 Trophies</button>
-      <button class="nav-link" data-view-target="settings" id="nav-btn-settings">⚙️ Settings</button>
-      <button class="nav-link" data-view-target="leaderboard" id="nav-btn-leaderboard">🥇 Leaderboard</button>
-      <button class="nav-link" data-view-target="auth" id="nav-btn-auth">👤 Account</button>
-    </nav>
-
-    <!-- Header Actions & Virtual Identity Session Badge -->
-    <div class="header-actions">
-      <!-- Sound FX Toggle Button -->
-      <button id="btn-toggle-sound" class="btn-icon" title="Toggle Sound Effects">🔊 Sound: ON</button>
-
-      <!-- [VIRTUAL IDENTITY] Guest State View -->
-      <div id="nav-guest" class="guest-actions">
-        <button class="btn-icon" data-view-target="auth">🔑 Login / Register</button>
-      </div>
-
-      <!-- [VIRTUAL IDENTITY] Logged-in Player Badge -->
-      <div id="nav-user" class="user-identity-badge hidden">
-        <div class="avatar-circle" id="player-avatar">P</div>
-        <div class="user-identity-info">
-          <span class="identity-name" id="badge-username">Player</span>
-          <span class="identity-pb" id="badge-highscore">PB: 0 pts</span>
+    <div class="top-bar-right">
+      <!-- Quick Player Profile Chip (Click opens Player Profile) -->
+      <div id="player-profile-chip" class="player-profile-chip" data-screen-target="screen-profile" title="View Player Profile &amp; Stats">
+        <div class="chip-avatar" id="player-avatar">🍌</div>
+        <div class="chip-info">
+          <span class="chip-name" id="badge-username">Guest Player</span>
+          <span class="chip-score" id="badge-highscore">PB: 0 pts</span>
         </div>
-        <button id="btn-logout" class="btn-icon btn-logout" title="Sign out of Virtual Identity">Exit</button>
       </div>
+
+      <!-- Quick Audio SFX Toggle Button -->
+      <button id="btn-toggle-sound" class="btn-top-icon" title="Toggle Sound Effects">
+        <span id="sound-icon-symbol">🔊</span>
+      </button>
+
+      <!-- Fullscreen Toggle Button -->
+      <button id="btn-toggle-fullscreen" class="btn-top-icon" title="Toggle Fullscreen Mode">
+        <span>⛶</span>
+      </button>
+
+      <!-- Sign Out / Exit Identity Button (when logged in) -->
+      <button id="btn-logout" class="btn-top-logout hidden" title="Sign out of Virtual Identity">Exit</button>
     </div>
   </header>
 
   <!-- ======================================================================
-       MAIN CONTENT CONTAINER
+       MAIN ARCADE VIEWPORT CONTAINER
        ====================================================================== -->
-  <main class="main-wrapper">
+  <main class="arcade-viewport">
 
-    <!-- [INTEROPERABILITY & VERSION CONTROL]: University Assignment Compliance Banner -->
-    <section class="compliance-banner">
-      <div class="compliance-left">
-        <span class="status-beacon"></span>
-        <span class="compliance-text">
-          <strong>Mandatory University Service:</strong>
-          Banana API Interoperability Active (<code>https://marcconrad.com/uob/banana/api.php?out=json</code>)
-        </span>
+    <!-- ====================================================================
+         SCREEN 1: LOADING / SPLASH SCREEN
+         ==================================================================== -->
+    <section id="screen-splash" class="splash-screen">
+      <!-- Floating Banana Particles Background -->
+      <div class="splash-bg-particles">
+        <span class="floating-banana-item" style="left: 10%; animation-delay: 0s;">🍌</span>
+        <span class="floating-banana-item" style="left: 25%; animation-delay: 2.5s;">⭐</span>
+        <span class="floating-banana-item" style="left: 45%; animation-delay: 5s;">🍌</span>
+        <span class="floating-banana-item" style="left: 65%; animation-delay: 1.2s;">✨</span>
+        <span class="floating-banana-item" style="left: 80%; animation-delay: 3.8s;">🍌</span>
+        <span class="floating-banana-item" style="left: 92%; animation-delay: 6s;">🎮</span>
       </div>
-      <div class="compliance-tags">
-        <span class="tag-badge">PHP + Apache</span>
-        <span class="tag-badge">MySQL DB</span>
-        <span class="tag-badge">JWT Identity</span>
-        <span class="tag-badge">Event-Driven</span>
+
+      <div class="splash-content">
+        <div class="splash-logo-box">
+          <div class="splash-mascot">🍌</div>
+          <h1 class="splash-title">BANANA ARCADE</h1>
+          <div class="splash-edition">UNIVERSITY SOFTWARE ENGINEERING EDITION</div>
+        </div>
+
+        <div class="splash-loader-box">
+          <div class="splash-progress-track">
+            <div id="splash-progress-bar" class="splash-progress-fill"></div>
+          </div>
+          <div id="splash-status-text" class="splash-status">Booting arcade engine...</div>
+        </div>
+
+        <div class="splash-welcome">GET READY TO PLAY!</div>
+        <div id="splash-start-prompt" class="splash-start-prompt hidden">PRESS ANY KEY OR TAP TO START</div>
       </div>
     </section>
 
     <!-- ====================================================================
-         VIEW 1: GAME SECTION (Pre-game & Active Game Engine)
+         SCREEN 2: MAIN MENU / CENTRAL HUB
          ==================================================================== -->
-    <section id="view-game" class="view-section">
-      <div class="game-container">
+    <section id="screen-main-menu" class="game-screen hidden">
+      <div class="main-menu-container">
 
-        <!-- PRE-GAME INTRO CARD -->
-        <div id="screen-pregame" class="pregame-card">
-          <!-- MAIN DASHBOARD: 4 PRIMARY SECTIONS (Solo Mode, Multiplayer Mode, Trophies, Settings) -->
-          <div class="dashboard-hub-nav">
-            <button class="dash-hub-btn active" data-view-target="game">
-              <span class="dash-hub-badge solo">SELECTED</span>
-              <span class="dash-hub-icon">🎮</span>
-              <span class="dash-hub-title">Solo Mode</span>
-              <span class="dash-hub-desc">3 Difficulty Options (Easy, Medium, Hard)</span>
-            </button>
-            <button class="dash-hub-btn" data-view-target="multiplayer">
-              <span class="dash-hub-badge mp">1v1 VERSUS</span>
-              <span class="dash-hub-icon">⚔️</span>
-              <span class="dash-hub-title">Multiplayer Mode</span>
-              <span class="dash-hub-desc">Host a Room or Join a Room</span>
-            </button>
-            <button class="dash-hub-btn" data-view-target="trophies">
-              <span class="dash-hub-badge tro">AWARDS</span>
-              <span class="dash-hub-icon">🏆</span>
-              <span class="dash-hub-title">Trophies</span>
-              <span class="dash-hub-desc">18 Achievements &amp; Collection</span>
-            </button>
-            <button class="dash-hub-btn" data-view-target="settings">
-              <span class="dash-hub-badge set">PREFERENCES</span>
-              <span class="dash-hub-icon">⚙️</span>
-              <span class="dash-hub-title">Settings</span>
-              <span class="dash-hub-desc">Sound FX, Controls &amp; Preferences</span>
-            </button>
-          </div>
-
-          <h2 class="arcade-hero-title">READY PLAYER ONE?</h2>
-          <p class="arcade-hero-desc">
-            Test your math speed against the clock! Puzzles are generated dynamically in real-time by the 
-            <strong>University Banana Web Service</strong>. Choose your difficulty mode below to begin.
-          </p>
-
-          <!-- PROMINENT DIFFICULTY MODE SELECTION (CHOOSE BEFORE STARTING) -->
-          <div class="difficulty-hero-container">
-            <div class="diff-selection-badge">
-              <span class="badge-step-icon">⚡</span>
-              <span>STEP 1: SELECT YOUR DIFFICULTY MODE</span>
-            </div>
-
-            <div class="difficulty-hero-cards" id="difficulty-selector">
-              <!-- Easy Card -->
-              <div class="diff-hero-card" data-difficulty="easy" id="diff-card-easy">
-                <div class="diff-hero-header">
-                  <span class="diff-hero-icon">🟢</span>
-                  <div class="diff-hero-title-box">
-                    <span class="diff-hero-name">EASY</span>
-                    <span class="diff-hero-tagline">Relaxed Training Pace</span>
-                  </div>
-                </div>
-                <div class="diff-hero-timer-pill">⏱️ 45s CLOCK</div>
-                <ul class="diff-hero-bullets">
-                  <li>✨ <strong>+3.0s</strong> bonus on each solve</li>
-                  <li>🛡️ <strong>Zero</strong> mistake penalties</li>
-                  <li>Combo multiplier up to <strong>3x</strong></li>
-                </ul>
-                <button type="button" class="btn-hero-launch btn-launch-easy" data-launch-diff="easy">
-                  PLAY EASY ▶
-                </button>
-              </div>
-
-              <!-- Medium Card -->
-              <div class="diff-hero-card active" data-difficulty="medium" id="diff-card-medium">
-                <div class="diff-card-corner-ribbon">POPULAR</div>
-                <div class="diff-hero-header">
-                  <span class="diff-hero-icon">🟡</span>
-                  <div class="diff-hero-title-box">
-                    <span class="diff-hero-name">MEDIUM</span>
-                    <span class="diff-hero-tagline">Standard Arcade Rules</span>
-                  </div>
-                </div>
-                <div class="diff-hero-timer-pill">⏱️ 30s CLOCK</div>
-                <ul class="diff-hero-bullets">
-                  <li>⚡ <strong>+1.5s</strong> bonus on each solve</li>
-                  <li>⚠️ <strong>-2s & -5pts</strong> on mistakes</li>
-                  <li>Combo multiplier up to <strong>5x</strong></li>
-                </ul>
-                <button type="button" class="btn-hero-launch btn-launch-medium" data-launch-diff="medium">
-                  PLAY MEDIUM ▶
-                </button>
-              </div>
-
-              <!-- Hard Card -->
-              <div class="diff-hero-card" data-difficulty="hard" id="diff-card-hard">
-                <div class="diff-card-corner-ribbon hardcore">HARDCORE</div>
-                <div class="diff-hero-header">
-                  <span class="diff-hero-icon">🔴</span>
-                  <div class="diff-hero-title-box">
-                    <span class="diff-hero-name">HARD</span>
-                    <span class="diff-hero-tagline">Extreme Speed & Stakes</span>
-                  </div>
-                </div>
-                <div class="diff-hero-timer-pill">⏱️ 20s BLITZ</div>
-                <ul class="diff-hero-bullets">
-                  <li>🚨 <strong>-4s & -15pts</strong> on mistakes!</li>
-                  <li>🔥 Up to <strong>10x Combo Overdrive</strong></li>
-                  <li>💥 Massive score potential</li>
-                </ul>
-                <button type="button" class="btn-hero-launch btn-launch-hard" data-launch-diff="hard">
-                  PLAY HARD ▶
-                </button>
-              </div>
-            </div>
-
-            <!-- Big Central Launch Button -->
-            <div class="launch-action-bar">
-              <button id="btn-start-game" class="btn-arcade-start">
-                <span class="btn-start-emoji">🚀</span>
-                <span id="btn-start-label">START GAME IN 🟡 MEDIUM MODE (30s)</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- Mini Rules Footer -->
-          <div class="game-rules-grid mini-rules">
-            <div class="rule-box">
-              <div class="rule-icon">⏱️</div>
-              <div class="rule-title">Dynamic Clock</div>
-              <div class="rule-desc">Correct answers add time rewards to your countdown loop.</div>
-            </div>
-            <div class="rule-box">
-              <div class="rule-icon">🔥</div>
-              <div class="rule-title">Intensity Levels</div>
-              <div class="rule-desc">Difficulty adapts dynamically during play: rises on streaks, cools on errors!</div>
-            </div>
-            <div class="rule-box">
-              <div class="rule-icon">⌨️</div>
-              <div class="rule-title">Quick Controls</div>
-              <div class="rule-desc">Tap the 0-9 keypad or press number keys on your physical keyboard.</div>
-            </div>
-          </div>
-
+        <!-- Main Menu Mascot & Hero Branding -->
+        <div class="menu-hero-branding">
+          <div class="menu-mascot-icon">🍌</div>
+          <h1 class="menu-title">BANANA ARCADE</h1>
+          <p class="menu-tagline">Real-Time University Banana Math Puzzles &amp; 1v1 Versus Arena</p>
         </div>
 
-        <!-- ACTIVE GAME SCREEN -->
-        <div id="screen-active-game" class="hidden">
-          
-          <!-- Game Heads-Up Display (HUD) -->
-          <div class="game-hud">
-            <!-- Dynamic Countdown Timer -->
-            <div class="hud-item timer-box">
-              <div class="timer-header">
-                <span class="hud-label">TIME REMAINING</span>
-                <span id="hud-timer-value" class="timer-number">30s</span>
-              </div>
-              <div class="timer-track">
-                <div id="hud-timer-progress" class="timer-progress normal"></div>
-              </div>
-            </div>
-
-            <!-- Score Counter -->
-            <div class="hud-item">
-              <span class="hud-label">SCORE</span>
-              <span id="hud-score-value" class="hud-value">0</span>
-            </div>
-
-            <!-- Streak & Combo Multiplier -->
-            <div class="hud-item">
-              <span class="hud-label">STREAK</span>
-              <span id="hud-streak-value" class="streak-badge">0 🔥 (1x)</span>
-            </div>
-
-            <!-- Puzzles Solved Counter -->
-            <div class="hud-item">
-              <span class="hud-label">SOLVED</span>
-              <span id="hud-solved-value" class="hud-value">0</span>
-            </div>
-
-            <!-- Difficulty Mode & Dynamic Adaptive Level -->
-            <div class="hud-item diff-hud-item">
-              <span class="hud-label">MODE / INTENSITY</span>
-              <div class="diff-hud-badges">
-                <span id="hud-diff-badge" class="hud-diff-pill medium">🟡 MEDIUM</span>
-                <span id="hud-intensity-badge" class="hud-intensity-pill">LVL 1</span>
-              </div>
+        <!-- Player Summary Showcase Bar -->
+        <div class="menu-player-bar">
+          <div class="menu-player-left" data-screen-target="screen-profile" style="cursor: pointer;">
+            <div class="menu-avatar-display" id="menu-player-avatar">🍌</div>
+            <div class="menu-player-details">
+              <h3 id="menu-player-name">Guest Player</h3>
+              <span id="menu-player-status" class="menu-player-status">👤 Guest (Progress saved locally)</span>
             </div>
           </div>
 
-          <!-- CRT Monitor: University Banana API Puzzle Viewer -->
-          <div id="crt-monitor" class="crt-monitor" style="margin-top: 1rem;">
-            <!-- Real-time Feedback Banner -->
-            <div id="feedback-banner" class="feedback-banner"></div>
-
-            <div class="crt-header">
-              <span class="crt-title">BANANA PUZZLE TERMINAL</span>
-              <span id="api-status-badge" class="api-badge online">University Banana API: Active</span>
+          <div class="menu-player-stats-row">
+            <div class="menu-stat-pill">
+              <span class="lbl">Personal Best</span>
+              <span class="val" id="menu-player-pb">0 pts</span>
             </div>
-
-            <div class="puzzle-stage">
-              <div id="puzzle-loader" class="puzzle-loader">
-                <div class="spinner"></div>
-                <span>Fetching dynamic puzzle from University API...</span>
-              </div>
-              <img id="puzzle-image" class="puzzle-image opacity-0" src="" alt="University Banana Math Puzzle" />
+            <div class="menu-stat-pill">
+              <span class="lbl">Trophies</span>
+              <span class="val" id="menu-player-trophies">0 / 18</span>
             </div>
-          </div>
-
-          <!-- Interactive GUI Controls & Numeric Keypad -->
-          <div class="controls-layout">
-            <!-- Answer Input & Actions -->
-            <div class="input-entry-section">
-              <div class="input-group">
-                <label for="puzzle-answer-input" class="input-label">Your Solution (0-9):</label>
-                <div class="display-input-wrapper">
-                  <input 
-                    type="number" 
-                    id="puzzle-answer-input" 
-                    class="puzzle-input" 
-                    placeholder="?" 
-                    min="0" 
-                    max="9" 
-                    autocomplete="off"
-                    aria-label="Puzzle answer digit"
-                  />
-                </div>
-              </div>
-
-              <div class="action-buttons-row">
-                <button id="btn-submit-answer" class="btn-submit-answer">SUBMIT [↵ Enter]</button>
-                <button id="btn-skip-puzzle" class="btn-skip-puzzle" title="Skip puzzle (-5 points penalty)">Skip (-5)</button>
-              </div>
-            </div>
-
-            <!-- [EVENT-DRIVEN PROGRAMMING] Interactive On-Screen Keypad -->
-            <div class="keypad-container">
-              <div class="keypad-header">Touch / Click Keypad (0-9)</div>
-              <div id="arcade-keypad" class="keypad-grid">
-                <button class="keypad-btn" data-action="digit" data-value="1">1</button>
-                <button class="keypad-btn" data-action="digit" data-value="2">2</button>
-                <button class="keypad-btn" data-action="digit" data-value="3">3</button>
-                <button class="keypad-btn" data-action="digit" data-value="4">4</button>
-                <button class="keypad-btn" data-action="digit" data-value="5">5</button>
-                <button class="keypad-btn" data-action="digit" data-value="6">6</button>
-                <button class="keypad-btn" data-action="digit" data-value="7">7</button>
-                <button class="keypad-btn" data-action="digit" data-value="8">8</button>
-                <button class="keypad-btn" data-action="digit" data-value="9">9</button>
-                <button class="keypad-btn action-btn clear-btn" data-action="clear">CLR</button>
-                <button class="keypad-btn" data-action="digit" data-value="0">0</button>
-                <button class="keypad-btn action-btn submit-key-btn" data-action="submit">GO</button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ====================================================================
-         VIEW: 1v1 VERSUS MULTIPLAYER (Room Code & 3-Health-Bar Combat)
-         ==================================================================== -->
-    <section id="view-multiplayer" class="view-section hidden">
-      <div class="mp-container">
-
-        <!-- ================= LOBBY SCREEN ================= -->
-        <div id="mp-screen-lobby" class="mp-screen">
-          <div class="mp-lobby-hero">
-            <span class="mp-badge-tag">⚡ REAL-TIME 1V1 VERSUS</span>
-            <h2 class="view-heading">MULTIPLAYER ARENA</h2>
-            <p class="mp-lobby-subtext">
-              Generate a secret room code or enter your friend's code to fight head-to-head! 
-              Both players get <strong>3 Health Bars (❤️❤️❤️)</strong>. Answering incorrectly costs 1 HP. 
-              First player to reach 0 HP loses the match!
-            </p>
-          </div>
-
-          <div id="mp-lobby-alert" class="mp-alert hidden"></div>
-
-          <div class="mp-lobby-grid">
-            <!-- Card 1: Host Room -->
-            <div class="mp-action-card host-card">
-              <div class="mp-card-glow"></div>
-              <div class="mp-card-header">
-                <span class="mp-card-icon">👑</span>
-                <h3>HOST A MATCH</h3>
-              </div>
-              <p class="mp-card-desc">Create a new arena room and get a unique 6-character code to send to your opponent.</p>
-              
-              <div class="mp-player-preview">
-                <span class="preview-label">Your Fighter Identity:</span>
-                <div class="preview-badge">
-                  <span id="mp-lobby-host-avatar" class="preview-avatar">🍌</span>
-                  <span id="mp-lobby-host-name" class="preview-name">Player</span>
-                </div>
-              </div>
-
-              <button id="mp-btn-create-room" class="btn-primary mp-btn-action">
-                <span>⚡ GENERATE ROOM CODE</span>
-              </button>
-            </div>
-
-            <!-- Card 2: Join Room -->
-            <div class="mp-action-card join-card">
-              <div class="mp-card-glow"></div>
-              <div class="mp-card-header">
-                <span class="mp-card-icon">⚔️</span>
-                <h3>JOIN WITH CODE</h3>
-              </div>
-              <p class="mp-card-desc">Have a room code from a friend? Enter it below to immediately enter the battle arena.</p>
-
-              <div class="mp-code-input-group">
-                <label for="mp-join-code-input" class="input-label">Enter 6-Digit Room Code:</label>
-                <div class="room-code-field-wrapper">
-                  <input 
-                    type="text" 
-                    id="mp-join-code-input" 
-                    class="mp-code-input" 
-                    placeholder="BN-XXXX" 
-                    maxlength="7" 
-                    autocomplete="off"
-                    spellcheck="false"
-                  />
-                  <button id="mp-btn-paste-code" class="btn-paste" title="Paste Code">📋</button>
-                </div>
-              </div>
-
-              <button id="mp-btn-join-room" class="btn-primary mp-btn-action btn-join">
-                <span>🚀 ENTER BATTLE</span>
-              </button>
+            <div class="menu-stat-pill">
+              <span class="lbl">Games</span>
+              <span class="val" id="menu-player-games">0</span>
             </div>
           </div>
         </div>
 
-        <!-- ================= WAITING ROOM SCREEN ================= -->
-        <div id="mp-screen-waiting" class="mp-screen hidden">
-          <div class="mp-waiting-card">
-            <span id="mp-waiting-status-badge" class="mp-badge-tag pulse">📡 Waiting for Player &bull; Share Room Code</span>
-            <h2 class="waiting-title">ROOM CODE READY!</h2>
-            <p class="text-muted">Share this code with your rival so they can join from their browser:</p>
-
-            <div class="room-code-display-box">
-              <span id="mp-waiting-code" class="glowing-room-code">BN-0000</span>
-              <button id="mp-btn-copy-code" class="btn-copy-code" title="Copy to clipboard">
-                <span id="mp-copy-icon">📋</span>
-                <span id="mp-copy-text">Copy Code</span>
-              </button>
-            </div>
-
-            <!-- Radar / Waiting animation -->
-            <div class="radar-box">
-              <div class="radar-sweep"></div>
-              <div class="radar-center">🍌</div>
-            </div>
-
-            <!-- Two Fighter Slots Preview -->
-            <div class="versus-slots-preview">
-              <div class="slot host-slot">
-                <span class="slot-badge">HOST (YOU)</span>
-                <div id="mp-wait-p1-avatar" class="slot-avatar">🍌</div>
-                <div id="mp-wait-p1-name" class="slot-name">Player 1</div>
-                <div id="mp-wait-p1-status" class="slot-status ready">READY</div>
-              </div>
-
-              <div class="slot-vs">VS</div>
-
-              <div class="slot guest-slot">
-                <span class="slot-badge">CHALLENGER</span>
-                <div class="slot-avatar pending">❓</div>
-                <div class="slot-name text-muted">Awaiting Player 2...</div>
-                <div id="mp-wait-p2-status" class="slot-status waiting">Waiting for Player</div>
-              </div>
-            </div>
-
-            <div class="waiting-actions">
-              <button id="mp-btn-start-match" class="btn-primary mp-btn-action hidden" style="width:100%;">
-                <span>&#128640; START MATCH!</span>
-              </button>
-              <button id="mp-btn-cancel-waiting" class="btn-dismiss">&#128666; Cancel &amp; Return to Lobby</button>
-            </div>
+        <!-- PRIMARY HERO BUTTON: PLAY GAME -->
+        <button id="menu-btn-play" class="menu-btn-play" data-screen-target="screen-mode-select">
+          <span class="play-btn-icon">▶</span>
+          <div class="play-btn-text-group">
+            <span class="play-btn-label">PLAY GAME</span>
+            <span class="play-btn-sub">Solo Mode &amp; 1v1 Multiplayer Versus</span>
           </div>
-        </div>
+        </button>
 
-        <!-- ================= 1v1 VERSUS ARENA SCREEN ================= -->
-        <div id="mp-screen-arena" class="mp-screen hidden">
-          <!-- Combat Header: 3-Hearts Dual HUD -->
-          <div class="versus-arena-hud">
-            <!-- Left Fighter: Host / Player 1 -->
-            <div class="fighter-card" id="mp-fighter-left">
-              <div class="fighter-header">
-                <div class="fighter-avatar-wrapper">
-                  <span id="mp-arena-p1-avatar" class="fighter-avatar">🍌</span>
-                  <span id="mp-arena-p1-tag" class="fighter-tag">HOST</span>
-                </div>
-                <div class="fighter-info">
-                  <span id="mp-arena-p1-name" class="fighter-name">Player 1</span>
-                  <div class="fighter-metrics-row">
-                    <span id="mp-arena-p1-score" class="fighter-score">0 PTS</span>
-                    <span id="mp-arena-p1-streak" class="fighter-streak-pill">🔥 0 Streak</span>
-                  </div>
-                </div>
+        <!-- SECONDARY ARCADE MENU GRID -->
+        <div class="main-menu-grid">
+          <!-- Card 1: Trophies & Achievements -->
+          <button class="menu-card-btn" data-screen-target="screen-trophies">
+            <div class="menu-card-icon" style="color: #ffd700;">🏆</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title-row">
+                <span class="menu-card-title">TROPHIES</span>
+                <span id="menu-trophy-badge" class="menu-badge">0 / 18</span>
               </div>
+              <span class="menu-card-desc">18 Arcade Achievements &amp; Progress</span>
+            </div>
+          </button>
 
-              <!-- 3 Health Bars (Hearts) -->
-              <div class="fighter-hp-container">
-                <div class="hp-label-row">
-                  <span class="hp-title">HEALTH BAR</span>
-                  <span id="mp-p1-hp-text" class="hp-fraction">3 / 3 HP</span>
-                </div>
-                <div class="fighter-hearts" id="mp-p1-hearts">
-                  <span class="heart-hp active" data-index="1">❤️</span>
-                  <span class="heart-hp active" data-index="2">❤️</span>
-                  <span class="heart-hp active" data-index="3">❤️</span>
-                </div>
-                <div class="hp-bar-track">
-                  <div id="mp-p1-hp-bar" class="hp-bar-fill" style="width: 100%;"></div>
-                </div>
+          <!-- Card 2: Player Profile & Statistics -->
+          <button class="menu-card-btn" data-screen-target="screen-profile">
+            <div class="menu-card-icon" style="color: #00f2fe;">👤</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title-row">
+                <span class="menu-card-title">PROFILE &amp; STATS</span>
               </div>
+              <span class="menu-card-desc">Identity, stats &amp; avatar wardrobe</span>
             </div>
+          </button>
 
-            <!-- Central VS Badge & Round Indicator -->
-            <div class="versus-center-hud">
-              <div class="vs-badge">VS</div>
-              <span id="mp-arena-round" class="round-badge">ROUND 1</span>
-              <span id="mp-arena-room-label" class="room-pill">ROOM: BN-0000</span>
-            </div>
-
-            <!-- Right Fighter: Guest / Player 2 -->
-            <div class="fighter-card" id="mp-fighter-right">
-              <div class="fighter-header">
-                <div class="fighter-avatar-wrapper">
-                  <span id="mp-arena-p2-avatar" class="fighter-avatar">🐒</span>
-                  <span id="mp-arena-p2-tag" class="fighter-tag">CHALLENGER</span>
-                </div>
-                <div class="fighter-info">
-                  <span id="mp-arena-p2-name" class="fighter-name">Player 2</span>
-                  <div class="fighter-metrics-row">
-                    <span id="mp-arena-p2-score" class="fighter-score">0 PTS</span>
-                    <span id="mp-arena-p2-streak" class="fighter-streak-pill">🔥 0 Streak</span>
-                  </div>
-                </div>
+          <!-- Card 3: Game Settings -->
+          <button class="menu-card-btn" data-screen-target="screen-settings">
+            <div class="menu-card-icon" style="color: #00e676;">⚙️</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title-row">
+                <span class="menu-card-title">SETTINGS</span>
               </div>
+              <span class="menu-card-desc">Audio, display &amp; difficulty rules</span>
+            </div>
+          </button>
 
-              <!-- 3 Health Bars (Hearts) -->
-              <div class="fighter-hp-container">
-                <div class="hp-label-row">
-                  <span class="hp-title">HEALTH BAR</span>
-                  <span id="mp-p2-hp-text" class="hp-fraction">3 / 3 HP</span>
-                </div>
-                <div class="fighter-hearts" id="mp-p2-hearts">
-                  <span class="heart-hp active" data-index="1">❤️</span>
-                  <span class="heart-hp active" data-index="2">❤️</span>
-                  <span class="heart-hp active" data-index="3">❤️</span>
-                </div>
-                <div class="hp-bar-track">
-                  <div id="mp-p2-hp-bar" class="hp-bar-fill" style="width: 100%;"></div>
-                </div>
+          <!-- Card 4: Leaderboard / Hall of Fame -->
+          <button class="menu-card-btn" data-screen-target="screen-leaderboard">
+            <div class="menu-card-icon" style="color: #ff9100;">🥇</div>
+            <div class="menu-card-content">
+              <div class="menu-card-title-row">
+                <span class="menu-card-title">HALL OF FAME</span>
               </div>
+              <span class="menu-card-desc">Global top 10 arcade high scores</span>
             </div>
-          </div>
-
-          <!-- Combat Event Banner -->
-          <div id="mp-event-banner" class="mp-event-banner">
-            ⚔️ Match Commenced! First to crack the Banana Puzzle wins the round!
-          </div>
-
-          <!-- Shared Banana API Puzzle Monitor -->
-          <div class="crt-monitor mp-crt-monitor">
-            <div class="crt-header">
-              <span class="crt-title">1V1 BATTLE PUZZLE &bull; UNIVERSITY BANANA API</span>
-              <span class="api-badge online">Live Synchronized</span>
-            </div>
-
-            <div class="puzzle-stage">
-              <div id="mp-puzzle-loader" class="puzzle-loader">
-                <div class="spinner"></div>
-                <span>Syncing round puzzle with server...</span>
-              </div>
-              <img id="mp-puzzle-image" class="puzzle-image opacity-0" src="" alt="1v1 Battle Puzzle" />
-            </div>
-          </div>
-
-          <!-- Combat Keypad & Attack Controls -->
-          <div class="controls-layout mp-controls-layout">
-            <div class="input-entry-section">
-              <div class="input-group">
-                <label for="mp-answer-input" class="input-label">Strike Solution (0-9):</label>
-                <div class="display-input-wrapper">
-                  <input 
-                    type="number" 
-                    id="mp-answer-input" 
-                    class="puzzle-input" 
-                    min="0" 
-                    max="9" 
-                    placeholder="?"
-                    autocomplete="off"
-                  />
-                  <button id="mp-btn-attack" class="btn-action-primary mp-btn-strike">
-                    <span>⚔️ STRIKE!</span>
-                  </button>
-                </div>
-              </div>
-
-              <div class="mp-arena-subactions">
-                <button id="mp-btn-leave-match" class="btn-dismiss" style="font-size: 0.8rem; padding: 6px 12px;">
-                  🏳️ Surrender / Exit
-                </button>
-              </div>
-            </div>
-
-            <!-- Numeric Keypad (0-9) -->
-            <div class="keypad-section">
-              <div class="keypad-grid">
-                <button class="keypad-btn mp-kp-btn" data-value="1">1</button>
-                <button class="keypad-btn mp-kp-btn" data-value="2">2</button>
-                <button class="keypad-btn mp-kp-btn" data-value="3">3</button>
-                <button class="keypad-btn mp-kp-btn" data-value="4">4</button>
-                <button class="keypad-btn mp-kp-btn" data-value="5">5</button>
-                <button class="keypad-btn mp-kp-btn" data-value="6">6</button>
-                <button class="keypad-btn mp-kp-btn" data-value="7">7</button>
-                <button class="keypad-btn mp-kp-btn" data-value="8">8</button>
-                <button class="keypad-btn mp-kp-btn" data-value="9">9</button>
-                <button class="keypad-btn action-btn clear-btn" id="mp-kp-clear">CLR</button>
-                <button class="keypad-btn mp-kp-btn" data-value="0">0</button>
-                <button class="keypad-btn action-btn submit-key-btn" id="mp-kp-go">GO</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ================= BATTLE OVER MODAL ================= -->
-      <div id="mp-modal-battleover" class="modal-overlay hidden">
-        <div class="modal-card mp-gameover-card">
-          <div id="mp-outcome-badge" class="gameover-title victory">🏆 VICTORY!</div>
-          
-          <div class="mp-winner-showcase">
-            <div id="mp-winner-avatar" class="winner-avatar-big">👑</div>
-            <h3 id="mp-winner-heading" class="winner-title">Player 1 Won the Match!</h3>
-            <p id="mp-winner-reason" class="winner-subtitle">Player 2 lost all 3 health bars!</p>
-          </div>
-
-          <div class="mp-match-stats-grid">
-            <div class="mp-stat-box">
-              <span class="stat-lbl">MATCH ROUNDS</span>
-              <span id="mp-stat-rounds" class="stat-val">5</span>
-            </div>
-            <div class="mp-stat-box">
-              <span class="stat-lbl" id="mp-stat-p1-lbl">HOST LIVES</span>
-              <span id="mp-stat-p1-hp" class="stat-val">❤️❤️❤️</span>
-            </div>
-            <div class="mp-stat-box">
-              <span class="stat-lbl" id="mp-stat-p2-lbl">GUEST LIVES</span>
-              <span id="mp-stat-p2-hp" class="stat-val">💀 0/3 HP</span>
-            </div>
-            <div class="mp-stat-box">
-              <span class="stat-lbl">YOUR SCORE</span>
-              <span id="mp-stat-myscore" class="stat-val">30 PTS</span>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <button id="mp-btn-rematch" class="btn-restart">🔄 Play Again / Rematch</button>
-            <button id="mp-btn-close-battleover" class="btn-dismiss">🏠 Return to Main Dashboard</button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ====================================================================
-         VIEW: TROPHY ROOM & ACHIEVEMENTS SECTION (18 Trophies)
-         ==================================================================== -->
-    <section id="view-trophies" class="view-section hidden">
-      <div class="trophies-container">
-        
-        <!-- Trophy Hero & Overall Progress Overview Card -->
-        <div class="trophy-hero-card">
-          <div class="trophy-hero-left">
-            <div class="trophy-grand-icon">🏆</div>
-            <div class="trophy-hero-text">
-              <span class="trophy-badge">HALL OF ACHIEVEMENTS</span>
-              <h2 class="view-heading">TROPHY ROOM</h2>
-              <p class="text-muted">Conquer challenges, hit combo streaks, and claim all 18 arcade trophies!</p>
-            </div>
-          </div>
-
-          <div class="trophy-hero-stats">
-            <div class="trophy-stat-block">
-              <span class="tstat-label">TOTAL UNLOCKED</span>
-              <span id="trophy-stat-total" class="tstat-number">0 / 18</span>
-              <span id="trophy-stat-pct" class="tstat-pct">0% COMPLETED</span>
-            </div>
-            <div class="trophy-overall-bar">
-              <div id="trophy-stat-bar-fill" class="trophy-overall-fill" style="width: 0%;"></div>
-            </div>
-            <div class="trophy-tier-breakdown">
-              <span class="tier-pill bronze" title="Bronze Trophies">🥉 <strong id="trophy-tier-bronze">0/5</strong></span>
-              <span class="tier-pill silver" title="Silver Trophies">🥈 <strong id="trophy-tier-silver">0/5</strong></span>
-              <span class="tier-pill gold" title="Gold Trophies">🥇 <strong id="trophy-tier-gold">0/5</strong></span>
-              <span class="tier-pill platinum" title="Platinum Trophies">💎 <strong id="trophy-tier-platinum">0/3</strong></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Trophy Category Filters -->
-        <div class="trophy-filters-bar" id="trophy-filters">
-          <button class="trophy-filter-btn active" data-filter="all">All (18)</button>
-          <button class="trophy-filter-btn" data-filter="unlocked">✅ Unlocked</button>
-          <button class="trophy-filter-btn" data-filter="locked">🔒 Locked</button>
-          <button class="trophy-filter-btn" data-filter="gameplay">🎮 Gameplay</button>
-          <button class="trophy-filter-btn" data-filter="combo">⚡ Combo</button>
-          <button class="trophy-filter-btn" data-filter="winning">🏆 Winning</button>
-          <button class="trophy-filter-btn" data-filter="multiplayer">⚔️ Multiplayer</button>
-          <button class="trophy-filter-btn" data-filter="special">💎 Special</button>
-        </div>
-
-        <!-- 18 Trophy Cards Grid -->
-        <div id="trophy-cards-grid" class="trophy-grid">
-          <!-- Dynamically populated by AchievementManager -->
-        </div>
-
-        <div class="trophies-footer">
-          <button class="btn-primary" data-view-target="game" style="max-width: 280px; margin: 1.5rem auto 0; width: 100%;">
-            🎮 Return to Main Dashboard
           </button>
         </div>
 
+        <div class="menu-compliance-footer">
+          Mandatory University Service: Banana API Interoperability Active (<code>marcconrad.com/uob/banana/api.php</code>)
+        </div>
+
       </div>
     </section>
-    <section id="view-settings" class="view-section hidden">
-      <div class="settings-container">
-        <div class="settings-card">
-          <div class="settings-header">
-            <span class="settings-badge">ARCADE PREFERENCES</span>
-            <h2 class="view-heading">⚙️ GAME SETTINGS</h2>
-            <p class="text-muted">Manage arcade sound effects, audio volume, default difficulty, and character identity.</p>
-          </div>
 
-          <div class="settings-grid">
-            <!-- Setting 1: Sound Effects Toggle -->
-            <div class="setting-item">
-              <div class="setting-info">
-                <span class="setting-title">🔊 Sound Effects (SFX)</span>
-                <span class="setting-desc">Enable or mute retro synthesized arcade sounds (clock ticks, right/wrong answer sounds, victory fanfare).</span>
-              </div>
-              <div class="setting-action">
-                <button id="settings-toggle-sound" class="btn-toggle-switch active">
-                  <span class="switch-ball"></span>
-                  <span id="settings-sound-text" class="switch-label">SOUND: ON</span>
-                </button>
+    <!-- ====================================================================
+         SCREEN 3: GAME MODE SELECTION SCREEN
+         ==================================================================== -->
+    <section id="screen-mode-select" class="game-screen hidden">
+      <div class="screen-header-bar">
+        <div class="screen-title-group">
+          <span class="screen-badge-tag">GAME SELECTION</span>
+          <h2 class="screen-main-title">CHOOSE GAME MODE</h2>
+          <p class="screen-subtitle">Play solo against the clock or challenge a friend in 1v1 real-time combat</p>
+        </div>
+        <button class="btn-arcade-back" data-action="back">
+          <span>⬅</span> <span>MAIN MENU</span>
+        </button>
+      </div>
+
+      <div class="mode-cards-container">
+        <!-- MODE 1: SOLO MODE -->
+        <div class="mode-select-card solo-card" data-screen-target="screen-solo-difficulty">
+          <span class="mode-card-badge">SINGLE PLAYER</span>
+          <div class="mode-card-icon">🎮</div>
+          <h3 class="mode-card-title">SOLO ARCADE</h3>
+          <p class="mode-card-tagline">Race the countdown timer, chain combo streaks, and set new high scores!</p>
+          
+          <ul class="mode-card-bullets">
+            <li>⏱️ <strong>3 Difficulty Modes:</strong> Easy (45s), Medium (30s), Hard (20s)</li>
+            <li>🔥 <strong>Dynamic Combo Streaks:</strong> Up to 3.0x score multipliers</li>
+            <li>✨ <strong>Adapting Intensity:</strong> Rises on streaks, cools on mistakes</li>
+            <li>🏆 <strong>18 Trophies:</strong> Unlock achievements as you play</li>
+          </ul>
+
+          <button class="btn-mode-launch" data-screen-target="screen-solo-difficulty">
+            CHOOSE DIFFICULTY ➔
+          </button>
+        </div>
+
+        <!-- MODE 2: MULTIPLAYER MODE -->
+        <div class="mode-select-card mp-card" data-screen-target="screen-mp-menu">
+          <span class="mode-card-badge">1V1 REAL-TIME</span>
+          <div class="mode-card-icon">⚔️</div>
+          <h3 class="mode-card-title">VERSUS ARENA</h3>
+          <p class="mode-card-tagline">Fight head-to-head across two devices using synchronized 3 Health Bars!</p>
+          
+          <ul class="mode-card-bullets">
+            <li>👑 <strong>Host a Room:</strong> Generate a unique 6-character room code</li>
+            <li>🚀 <strong>Join with Code:</strong> Enter your friend's code instantly</li>
+            <li>❤️ <strong>3 Health Bars (❤️❤️❤️):</strong> Mistakes cost 1 HP, first to 0 loses</li>
+            <li>🔄 <strong>Instant Rematch:</strong> Continuous rounds without re-hosting</li>
+          </ul>
+
+          <button class="btn-mode-launch" data-screen-target="screen-mp-menu">
+            ENTER MULTIPLAYER ➔
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 4: SOLO DIFFICULTY SELECTION SCREEN
+         ==================================================================== -->
+    <section id="screen-solo-difficulty" class="game-screen hidden">
+      <div class="screen-header-bar">
+        <div class="screen-title-group">
+          <span class="screen-badge-tag">SOLO ARCADE</span>
+          <h2 class="screen-main-title">SELECT DIFFICULTY</h2>
+          <p class="screen-subtitle">Choose your pace and stakes before entering the puzzle terminal</p>
+        </div>
+        <button class="btn-arcade-back" data-screen-target="screen-mode-select">
+          <span>⬅</span> <span>CHANGE MODE</span>
+        </button>
+      </div>
+
+      <div class="difficulty-hero-container">
+        <div class="difficulty-hero-cards" id="difficulty-selector">
+          <!-- Easy Card -->
+          <div class="diff-hero-card" data-difficulty="easy" id="diff-card-easy">
+            <div class="diff-hero-header">
+              <span class="diff-hero-icon">🟢</span>
+              <div class="diff-hero-title-box">
+                <span class="diff-hero-name">EASY</span>
+                <span class="diff-hero-tagline">Relaxed Training Pace</span>
               </div>
             </div>
-
-            <!-- Setting 2: Web Audio Synthesizer Test -->
-            <div class="setting-item">
-              <div class="setting-info">
-                <span class="setting-title">🎵 Sound Test Station</span>
-                <span class="setting-desc">Test your browser Web Audio API synthesizer for all arcade sound events.</span>
-              </div>
-              <div class="setting-action sfx-test-buttons">
-                <button class="btn-sfx-test" data-sfx="correct">✨ Correct</button>
-                <button class="btn-sfx-test" data-sfx="wrong">💥 Mistake</button>
-                <button class="btn-sfx-test" data-sfx="gameover">🏁 Game Over</button>
-              </div>
-            </div>
-
-            <!-- Setting 3: Default Difficulty -->
-            <div class="setting-item">
-              <div class="setting-info">
-                <span class="setting-title">⚡ Default Solo Difficulty</span>
-                <span class="setting-desc">Pre-select the difficulty when launching Solo Mode on the main dashboard.</span>
-              </div>
-              <div class="setting-action diff-selector-pills">
-                <button class="settings-diff-pill" data-diff="easy">🟢 Easy (45s)</button>
-                <button class="settings-diff-pill active" data-diff="medium">🟡 Medium (30s)</button>
-                <button class="settings-diff-pill" data-diff="hard">🔴 Hard (20s)</button>
-              </div>
-            </div>
-
-            <!-- Setting 4: Virtual Identity Character -->
-            <div class="setting-item">
-              <div class="setting-info">
-                <span class="setting-title">🎨 Character Wardrobe</span>
-                <span class="setting-desc">Customize your player avatar displayed in Solo Mode and Multiplayer 1v1 Arena.</span>
-              </div>
-              <div class="setting-action">
-                <button class="btn-primary" data-view-target="auth" style="padding: 8px 18px; font-size: 0.85rem;">
-                  Open Avatar Wardrobe ➔
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div class="settings-footer">
-            <button class="btn-primary" data-view-target="game" style="max-width: 280px; margin: 0 auto; width: 100%;">
-              🎮 Return to Main Dashboard
+            <div class="diff-hero-timer-pill">⏱️ 45s CLOCK</div>
+            <ul class="diff-hero-bullets">
+              <li>✨ <strong>+3.0s</strong> bonus on each solve</li>
+              <li>🛡️ <strong>Zero</strong> mistake penalties</li>
+              <li>Combo multiplier up to <strong>3x</strong></li>
+            </ul>
+            <button type="button" class="btn-hero-launch btn-launch-easy" data-launch-diff="easy">
+              PLAY EASY ▶
             </button>
+          </div>
+
+          <!-- Medium Card -->
+          <div class="diff-hero-card active" data-difficulty="medium" id="diff-card-medium">
+            <div class="diff-card-corner-ribbon">POPULAR</div>
+            <div class="diff-hero-header">
+              <span class="diff-hero-icon">🟡</span>
+              <div class="diff-hero-title-box">
+                <span class="diff-hero-name">MEDIUM</span>
+                <span class="diff-hero-tagline">Standard Arcade Rules</span>
+              </div>
+            </div>
+            <div class="diff-hero-timer-pill">⏱️ 30s CLOCK</div>
+            <ul class="diff-hero-bullets">
+              <li>⚡ <strong>+1.5s</strong> bonus on each solve</li>
+              <li>⚠️ <strong>-2s &amp; -5pts</strong> on mistakes</li>
+              <li>Combo multiplier up to <strong>3x</strong></li>
+            </ul>
+            <button type="button" class="btn-hero-launch btn-launch-medium" data-launch-diff="medium">
+              PLAY MEDIUM ▶
+            </button>
+          </div>
+
+          <!-- Hard Card -->
+          <div class="diff-hero-card" data-difficulty="hard" id="diff-card-hard">
+            <div class="diff-card-corner-ribbon hardcore">HARDCORE</div>
+            <div class="diff-hero-header">
+              <span class="diff-hero-icon">🔴</span>
+              <div class="diff-hero-title-box">
+                <span class="diff-hero-name">HARD</span>
+                <span class="diff-hero-tagline">Extreme Speed &amp; Stakes</span>
+              </div>
+            </div>
+            <div class="diff-hero-timer-pill">⏱️ 20s BLITZ</div>
+            <ul class="diff-hero-bullets">
+              <li>🚨 <strong>-4s &amp; -15pts</strong> on mistakes!</li>
+              <li>🔥 Up to <strong>3x Combo Overdrive</strong></li>
+              <li>💥 Massive score potential</li>
+            </ul>
+            <button type="button" class="btn-hero-launch btn-launch-hard" data-launch-diff="hard">
+              PLAY HARD ▶
+            </button>
+          </div>
+        </div>
+
+        <!-- Central Launch Button -->
+        <div class="launch-action-bar">
+          <button id="btn-start-game" class="btn-arcade-start">
+            <span class="btn-start-emoji">🚀</span>
+            <span id="btn-start-label">START GAME IN 🟡 MEDIUM MODE (30s)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Mini Rules Footer -->
+      <div class="game-rules-grid mini-rules" style="margin-top: 1.5rem;">
+        <div class="rule-box">
+          <div class="rule-icon">⏱️</div>
+          <div class="rule-title">Dynamic Clock</div>
+          <div class="rule-desc">Correct answers add time rewards to your countdown loop.</div>
+        </div>
+        <div class="rule-box">
+          <div class="rule-icon">🔥</div>
+          <div class="rule-title">Intensity Levels</div>
+          <div class="rule-desc">Difficulty adapts dynamically: rises on streaks, cools on errors!</div>
+        </div>
+        <div class="rule-box">
+          <div class="rule-icon">⌨️</div>
+          <div class="rule-title">Quick Controls</div>
+          <div class="rule-desc">Tap the 0-9 keypad or press number keys on your physical keyboard.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 5: DISTRACTION-FREE SOLO GAMEPLAY SCREEN
+         ==================================================================== -->
+    <section id="screen-gameplay-solo" class="game-screen hidden">
+      <!-- Gameplay Top Bar with Quit Match Control -->
+      <div class="gameplay-top-bar">
+        <button id="btn-solo-quit" class="btn-quit-match" title="Quit Match and Return to Menu">
+          <span>⏸️ QUIT MATCH</span>
+        </button>
+        <div class="diff-hud-badges">
+          <span id="hud-diff-badge" class="hud-diff-pill medium">🟡 MEDIUM</span>
+          <span id="hud-intensity-badge" class="hud-intensity-pill">LVL 1</span>
+        </div>
+      </div>
+
+      <!-- Game Heads-Up Display (HUD) -->
+      <div class="game-hud">
+        <!-- Dynamic Countdown Timer -->
+        <div class="hud-item timer-box">
+          <div class="timer-header">
+            <span class="hud-label">TIME REMAINING</span>
+            <span id="hud-timer-value" class="timer-number">30s</span>
+          </div>
+          <div class="timer-track">
+            <div id="hud-timer-progress" class="timer-progress normal"></div>
+          </div>
+        </div>
+
+        <!-- Score Counter -->
+        <div class="hud-item">
+          <span class="hud-label">SCORE</span>
+          <span id="hud-score-value" class="hud-value">0</span>
+        </div>
+
+        <!-- Streak & Combo Multiplier -->
+        <div class="hud-item">
+          <span class="hud-label">STREAK</span>
+          <span id="hud-streak-value" class="streak-badge">0 🔥 (1x)</span>
+        </div>
+
+        <!-- Puzzles Solved Counter -->
+        <div class="hud-item">
+          <span class="hud-label">SOLVED</span>
+          <span id="hud-solved-value" class="hud-value">0</span>
+        </div>
+      </div>
+
+      <!-- CRT Monitor: University Banana API Puzzle Viewer -->
+      <div id="crt-monitor" class="crt-monitor" style="margin-top: 1rem;">
+        <!-- Real-time Feedback Banner -->
+        <div id="feedback-banner" class="feedback-banner"></div>
+
+        <div class="crt-header">
+          <span class="crt-title">BANANA PUZZLE TERMINAL</span>
+          <span id="api-status-badge" class="api-badge online">University Banana API: Active</span>
+        </div>
+
+        <div class="puzzle-stage">
+          <div id="puzzle-loader" class="puzzle-loader">
+            <div class="spinner"></div>
+            <span>Fetching dynamic puzzle from University API...</span>
+          </div>
+          <img id="puzzle-image" class="puzzle-image opacity-0" src="" alt="University Banana Math Puzzle" />
+        </div>
+      </div>
+
+      <!-- Interactive GUI Controls & Numeric Keypad -->
+      <div class="controls-layout">
+        <!-- Answer Input & Actions -->
+        <div class="input-entry-section">
+          <div class="input-group">
+            <label for="puzzle-answer-input" class="input-label">Your Solution (0-9):</label>
+            <div class="display-input-wrapper">
+              <input 
+                type="number" 
+                id="puzzle-answer-input" 
+                class="puzzle-input" 
+                placeholder="?" 
+                min="0" 
+                max="9" 
+                autocomplete="off"
+                aria-label="Puzzle answer digit"
+              />
+            </div>
+          </div>
+
+          <div class="action-buttons-row">
+            <button id="btn-submit-answer" class="btn-submit-answer">SUBMIT [↵ Enter]</button>
+            <button id="btn-skip-puzzle" class="btn-skip-puzzle" title="Skip puzzle (-5 points penalty)">Skip (-5)</button>
+          </div>
+        </div>
+
+        <!-- [EVENT-DRIVEN PROGRAMMING] Interactive On-Screen Keypad -->
+        <div class="keypad-container">
+          <div class="keypad-header">Touch / Click Keypad (0-9)</div>
+          <div id="arcade-keypad" class="keypad-grid">
+            <button class="keypad-btn" data-action="digit" data-value="1">1</button>
+            <button class="keypad-btn" data-action="digit" data-value="2">2</button>
+            <button class="keypad-btn" data-action="digit" data-value="3">3</button>
+            <button class="keypad-btn" data-action="digit" data-value="4">4</button>
+            <button class="keypad-btn" data-action="digit" data-value="5">5</button>
+            <button class="keypad-btn" data-action="digit" data-value="6">6</button>
+            <button class="keypad-btn" data-action="digit" data-value="7">7</button>
+            <button class="keypad-btn" data-action="digit" data-value="8">8</button>
+            <button class="keypad-btn" data-action="digit" data-value="9">9</button>
+            <button class="keypad-btn action-btn clear-btn" data-action="clear">CLR</button>
+            <button class="keypad-btn" data-action="digit" data-value="0">0</button>
+            <button class="keypad-btn action-btn submit-key-btn" data-action="submit">GO</button>
           </div>
         </div>
       </div>
     </section>
 
     <!-- ====================================================================
-         VIEW 2: LEADERBOARD SECTION (Persistent Global Top 10)
+         SCREEN 6: DEDICATED SOLO RESULTS / GAME OVER SCREEN
          ==================================================================== -->
-    <section id="view-leaderboard" class="view-section hidden">
-      <div class="leaderboard-card">
+    <section id="screen-results-solo" class="game-screen hidden">
+      <div class="results-screen-card">
+        <div class="modal-header-icon" style="font-size: 3.5rem;">🏁</div>
+        <h2 id="solo-res-title" class="results-banner victory">TIME'S UP!</h2>
+        <p class="modal-subtitle">Great arcade run! Here is your performance summary:</p>
+
+        <div class="stats-grid" style="margin-top: 1.5rem;">
+          <div class="stat-item">
+            <span class="stat-label">Final Score</span>
+            <span id="solo-res-score" class="stat-value highlight">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Difficulty</span>
+            <span id="solo-res-diff" class="stat-value">🟡 MEDIUM</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Highest Streak</span>
+            <span id="solo-res-streak" class="stat-value highlight">0 🔥</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Solved</span>
+            <span id="solo-res-solved" class="stat-value">0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Accuracy</span>
+            <span id="solo-res-accuracy" class="stat-value">0%</span>
+          </div>
+        </div>
+
+        <!-- Leaderboard Persistence Status -->
+        <div id="solo-res-leaderboard-status" class="status-text" style="margin-top: 1.25rem;"></div>
+
+        <!-- Dedicated Action Navigation Buttons -->
+        <div class="results-actions-row">
+          <button id="btn-solo-play-again" class="btn-restart">
+            <span>🔄 PLAY AGAIN</span>
+          </button>
+          <button id="btn-solo-change-diff" class="btn-primary" data-screen-target="screen-solo-difficulty" style="padding: 10px 20px;">
+            <span>🎮 CHANGE DIFFICULTY</span>
+          </button>
+          <button id="btn-solo-to-menu" class="btn-dismiss" data-screen-target="screen-main-menu">
+            <span>🏠 MAIN MENU</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 7: MULTIPLAYER MENU (Host vs Join Selection)
+         ==================================================================== -->
+    <section id="screen-mp-menu" class="game-screen hidden">
+      <div class="screen-header-bar">
+        <div class="screen-title-group">
+          <span class="screen-badge-tag">1V1 VERSUS ARENA</span>
+          <h2 class="screen-main-title">MULTIPLAYER COMBAT</h2>
+          <p class="screen-subtitle">Create a private battle room or enter a friend's room code to fight!</p>
+        </div>
+        <button class="btn-arcade-back" data-screen-target="screen-mode-select">
+          <span>⬅</span> <span>CHANGE MODE</span>
+        </button>
+      </div>
+
+      <div id="mp-lobby-alert" class="mp-alert hidden"></div>
+
+      <div class="mp-lobby-grid">
+        <!-- Card 1: Host Room -->
+        <div class="mp-action-card host-card">
+          <div class="mp-card-glow"></div>
+          <div class="mp-card-header">
+            <span class="mp-card-icon">👑</span>
+            <h3>HOST A MATCH</h3>
+          </div>
+          <p class="mp-card-desc">Create a new arena room and get a unique 6-character room code to share with your opponent.</p>
+          
+          <div class="mp-player-preview">
+            <span class="preview-label">Your Fighter Identity:</span>
+            <div class="preview-badge">
+              <span id="mp-lobby-host-avatar" class="preview-avatar">🍌</span>
+              <span id="mp-lobby-host-name" class="preview-name">Player</span>
+            </div>
+          </div>
+
+          <button id="mp-btn-create-room" class="btn-primary mp-btn-action">
+            <span>⚡ GENERATE ROOM CODE</span>
+          </button>
+        </div>
+
+        <!-- Card 2: Join Room -->
+        <div class="mp-action-card join-card">
+          <div class="mp-card-glow"></div>
+          <div class="mp-card-header">
+            <span class="mp-card-icon">⚔️</span>
+            <h3>JOIN WITH CODE</h3>
+          </div>
+          <p class="mp-card-desc">Have a room code from a friend? Enter it below to immediately enter the battle arena.</p>
+
+          <div class="mp-code-input-group">
+            <label for="mp-join-code-input" class="input-label">Enter 6-Digit Room Code:</label>
+            <div class="room-code-field-wrapper">
+              <input 
+                type="text" 
+                id="mp-join-code-input" 
+                class="mp-code-input" 
+                placeholder="BN-XXXX" 
+                maxlength="7" 
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="mp-btn-paste-code" class="btn-paste" title="Paste Code from Clipboard">📋</button>
+            </div>
+          </div>
+
+          <button id="mp-btn-join-room" class="btn-primary mp-btn-action btn-join">
+            <span>🚀 ENTER BATTLE</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 8: MULTIPLAYER WAITING LOBBY
+         ==================================================================== -->
+    <section id="screen-mp-waiting" class="game-screen hidden">
+      <div class="mp-waiting-card">
+        <span id="mp-waiting-status-badge" class="mp-badge-tag pulse">📡 Waiting for Player &bull; Share Room Code</span>
+        <h2 class="waiting-title">ROOM CODE READY!</h2>
+        <p class="text-muted">Share this code with your rival so they can join from their browser:</p>
+
+        <div class="room-code-display-box">
+          <span id="mp-waiting-code" class="glowing-room-code">BN-0000</span>
+          <button id="mp-btn-copy-code" class="btn-copy-code" title="Copy to clipboard">
+            <span id="mp-copy-icon">📋</span>
+            <span id="mp-copy-text">Copy Code</span>
+          </button>
+        </div>
+
+        <!-- Radar Animation -->
+        <div class="radar-box">
+          <div class="radar-sweep"></div>
+          <div class="radar-center">🍌</div>
+        </div>
+
+        <!-- Two Fighter Slots Preview -->
+        <div class="versus-slots-preview">
+          <div class="slot host-slot">
+            <span class="slot-badge">HOST (YOU)</span>
+            <div id="mp-wait-p1-avatar" class="slot-avatar">🍌</div>
+            <div id="mp-wait-p1-name" class="slot-name">Player 1</div>
+            <div id="mp-wait-p1-status" class="slot-status ready">READY</div>
+          </div>
+
+          <div class="slot-vs">VS</div>
+
+          <div class="slot guest-slot">
+            <span class="slot-badge">CHALLENGER</span>
+            <div class="slot-avatar pending">❓</div>
+            <div class="slot-name text-muted">Awaiting Player 2...</div>
+            <div id="mp-wait-p2-status" class="slot-status waiting">Waiting for Player</div>
+          </div>
+        </div>
+
+        <div class="waiting-actions">
+          <button id="mp-btn-start-match" class="btn-primary mp-btn-action hidden" style="width:100%;">
+            <span>🚀 START MATCH!</span>
+          </button>
+          <button id="mp-btn-cancel-waiting" class="btn-dismiss">🚪 Cancel &amp; Return to Menu</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 9: DISTRACTION-FREE 1V1 MULTIPLAYER ARENA
+         ==================================================================== -->
+    <section id="screen-gameplay-mp" class="game-screen hidden">
+      <!-- Combat Header: 3-Hearts Dual HUD -->
+      <div class="versus-arena-hud">
+        <!-- Left Fighter: Host / Player 1 -->
+        <div class="fighter-card" id="mp-fighter-left">
+          <div class="fighter-header">
+            <div class="fighter-avatar-wrapper">
+              <span id="mp-arena-p1-avatar" class="fighter-avatar">🍌</span>
+              <span id="mp-arena-p1-tag" class="fighter-tag">HOST</span>
+            </div>
+            <div class="fighter-info">
+              <span id="mp-arena-p1-name" class="fighter-name">Player 1</span>
+              <div class="fighter-metrics-row">
+                <span id="mp-arena-p1-score" class="fighter-score">0 PTS</span>
+                <span id="mp-arena-p1-streak" class="fighter-streak-pill">🔥 0 Streak</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Health Bars (Hearts) -->
+          <div class="fighter-hp-container">
+            <div class="hp-label-row">
+              <span class="hp-title">HEALTH BAR</span>
+              <span id="mp-p1-hp-text" class="hp-fraction">3 / 3 HP</span>
+            </div>
+            <div class="fighter-hearts" id="mp-p1-hearts">
+              <span class="heart-hp active" data-index="1">❤️</span>
+              <span class="heart-hp active" data-index="2">❤️</span>
+              <span class="heart-hp active" data-index="3">❤️</span>
+            </div>
+            <div class="hp-bar-track">
+              <div id="mp-p1-hp-bar" class="hp-bar-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Central VS Badge & Round Indicator -->
+        <div class="versus-center-hud">
+          <div class="vs-badge">VS</div>
+          <span id="mp-arena-round" class="round-badge">ROUND 1</span>
+          <span id="mp-arena-room-label" class="room-pill">ROOM: BN-0000</span>
+        </div>
+
+        <!-- Right Fighter: Guest / Player 2 -->
+        <div class="fighter-card" id="mp-fighter-right">
+          <div class="fighter-header">
+            <div class="fighter-avatar-wrapper">
+              <span id="mp-arena-p2-avatar" class="fighter-avatar">🐒</span>
+              <span id="mp-arena-p2-tag" class="fighter-tag">CHALLENGER</span>
+            </div>
+            <div class="fighter-info">
+              <span id="mp-arena-p2-name" class="fighter-name">Player 2</span>
+              <div class="fighter-metrics-row">
+                <span id="mp-arena-p2-score" class="fighter-score">0 PTS</span>
+                <span id="mp-arena-p2-streak" class="fighter-streak-pill">🔥 0 Streak</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Health Bars (Hearts) -->
+          <div class="fighter-hp-container">
+            <div class="hp-label-row">
+              <span class="hp-title">HEALTH BAR</span>
+              <span id="mp-p2-hp-text" class="hp-fraction">3 / 3 HP</span>
+            </div>
+            <div class="fighter-hearts" id="mp-p2-hearts">
+              <span class="heart-hp active" data-index="1">❤️</span>
+              <span class="heart-hp active" data-index="2">❤️</span>
+              <span class="heart-hp active" data-index="3">❤️</span>
+            </div>
+            <div class="hp-bar-track">
+              <div id="mp-p2-hp-bar" class="hp-bar-fill" style="width: 100%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Combat Event Banner -->
+      <div id="mp-event-banner" class="mp-event-banner">
+        ⚔️ Match Commenced! First to crack the Banana Puzzle wins the round!
+      </div>
+
+      <!-- Shared Banana API Puzzle Monitor -->
+      <div class="crt-monitor mp-crt-monitor">
+        <div class="crt-header">
+          <span class="crt-title">1V1 BATTLE PUZZLE &bull; UNIVERSITY BANANA API</span>
+          <span class="api-badge online">Live Synchronized</span>
+        </div>
+
+        <div class="puzzle-stage">
+          <div id="mp-puzzle-loader" class="puzzle-loader">
+            <div class="spinner"></div>
+            <span>Syncing round puzzle with server...</span>
+          </div>
+          <img id="mp-puzzle-image" class="puzzle-image opacity-0" src="" alt="1v1 Battle Puzzle" />
+        </div>
+      </div>
+
+      <!-- Combat Keypad & Attack Controls -->
+      <div class="controls-layout mp-controls-layout">
+        <div class="input-entry-section">
+          <div class="input-group">
+            <label for="mp-answer-input" class="input-label">Strike Solution (0-9):</label>
+            <div class="display-input-wrapper">
+              <input 
+                type="number" 
+                id="mp-answer-input" 
+                class="puzzle-input" 
+                min="0" 
+                max="9" 
+                placeholder="?"
+                autocomplete="off"
+              />
+              <button id="mp-btn-attack" class="btn-action-primary mp-btn-strike">
+                <span>⚔️ STRIKE!</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="mp-arena-subactions">
+            <button id="mp-btn-leave-match" class="btn-dismiss" style="font-size: 0.8rem; padding: 6px 12px;">
+              🏳️ Surrender / Exit
+            </button>
+          </div>
+        </div>
+
+        <!-- Numeric Keypad (0-9) -->
+        <div class="keypad-section">
+          <div class="keypad-grid">
+            <button class="keypad-btn mp-kp-btn" data-value="1">1</button>
+            <button class="keypad-btn mp-kp-btn" data-value="2">2</button>
+            <button class="keypad-btn mp-kp-btn" data-value="3">3</button>
+            <button class="keypad-btn mp-kp-btn" data-value="4">4</button>
+            <button class="keypad-btn mp-kp-btn" data-value="5">5</button>
+            <button class="keypad-btn mp-kp-btn" data-value="6">6</button>
+            <button class="keypad-btn mp-kp-btn" data-value="7">7</button>
+            <button class="keypad-btn mp-kp-btn" data-value="8">8</button>
+            <button class="keypad-btn mp-kp-btn" data-value="9">9</button>
+            <button class="keypad-btn action-btn clear-btn" id="mp-kp-clear">CLR</button>
+            <button class="keypad-btn mp-kp-btn" data-value="0">0</button>
+            <button class="keypad-btn action-btn submit-key-btn" id="mp-kp-go">GO</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 10: DEDICATED MULTIPLAYER RESULTS SCREEN (Battle Over)
+         ==================================================================== -->
+    <section id="screen-results-mp" class="game-screen hidden">
+      <div class="results-screen-card">
+        <div id="mp-outcome-badge" class="gameover-title victory">🏆 VICTORY!</div>
+        
+        <div class="mp-winner-showcase" style="margin: 1.5rem 0;">
+          <div id="mp-winner-avatar" class="winner-avatar-big">👑</div>
+          <h3 id="mp-winner-heading" class="winner-title" style="font-size: 1.3rem;">Player 1 Won the Match!</h3>
+          <p id="mp-winner-reason" class="winner-subtitle">Opponent lost all 3 health bars!</p>
+        </div>
+
+        <div class="mp-match-stats-grid">
+          <div class="mp-stat-box">
+            <span class="stat-lbl">MATCH ROUNDS</span>
+            <span id="mp-stat-rounds" class="stat-val">5</span>
+          </div>
+          <div class="mp-stat-box">
+            <span class="stat-lbl" id="mp-stat-p1-lbl">HOST LIVES</span>
+            <span id="mp-stat-p1-hp" class="stat-val">❤️❤️❤️</span>
+          </div>
+          <div class="mp-stat-box">
+            <span class="stat-lbl" id="mp-stat-p2-lbl">GUEST LIVES</span>
+            <span id="mp-stat-p2-hp" class="stat-val">💀 0/3 HP</span>
+          </div>
+          <div class="mp-stat-box">
+            <span class="stat-lbl">YOUR SCORE</span>
+            <span id="mp-stat-myscore" class="stat-val">30 PTS</span>
+          </div>
+        </div>
+
+        <div class="results-actions-row">
+          <button id="mp-btn-rematch" class="btn-restart">
+            <span>🔄 Play Again / Rematch</span>
+          </button>
+          <button id="mp-btn-close-battleover" class="btn-dismiss" data-screen-target="screen-main-menu">
+            <span>🏠 Main Menu</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 11: TROPHY ROOM & ACHIEVEMENTS COLLECTION (18 Trophies)
+         ==================================================================== -->
+    <section id="screen-trophies" class="game-screen hidden">
+      <div class="screen-header-bar">
+        <div class="screen-title-group">
+          <span class="screen-badge-tag">HALL OF ACHIEVEMENTS</span>
+          <h2 class="screen-main-title">TROPHY ROOM</h2>
+          <p class="screen-subtitle">Conquer challenges, hit combo streaks, and claim all 18 arcade trophies!</p>
+        </div>
+        <button class="btn-arcade-back" data-action="back">
+          <span>⬅</span> <span>MAIN MENU</span>
+        </button>
+      </div>
+
+      <!-- Trophy Hero & Overall Progress Overview Card -->
+      <div class="trophy-hero-card">
+        <div class="trophy-hero-left">
+          <div class="trophy-grand-icon">🏆</div>
+          <div class="trophy-hero-text">
+            <span class="trophy-badge">TROPHY COLLECTION</span>
+            <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 4px;">Milestones &amp; Honors</h3>
+            <p class="text-muted" style="font-size: 0.85rem;">Every trophy earned permanently boosts your arcade reputation!</p>
+          </div>
+        </div>
+
+        <div class="trophy-hero-stats">
+          <div class="trophy-stat-block">
+            <span class="tstat-label">TOTAL UNLOCKED</span>
+            <span id="trophy-stat-total" class="tstat-number">0 / 18</span>
+            <span id="trophy-stat-pct" class="tstat-pct">0% COMPLETED</span>
+          </div>
+          <div class="trophy-overall-bar">
+            <div id="trophy-stat-bar-fill" class="trophy-overall-fill" style="width: 0%;"></div>
+          </div>
+          <div class="trophy-tier-breakdown">
+            <span class="tier-pill bronze" title="Bronze Trophies">🥉 <strong id="trophy-tier-bronze">0/5</strong></span>
+            <span class="tier-pill silver" title="Silver Trophies">🥈 <strong id="trophy-tier-silver">0/5</strong></span>
+            <span class="tier-pill gold" title="Gold Trophies">🥇 <strong id="trophy-tier-gold">0/5</strong></span>
+            <span class="tier-pill platinum" title="Platinum Trophies">💎 <strong id="trophy-tier-platinum">0/3</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trophy Category Filters -->
+      <div class="trophy-filters-bar" id="trophy-filters" style="margin-top: 1.5rem;">
+        <button class="trophy-filter-btn active" data-filter="all">All (18)</button>
+        <button class="trophy-filter-btn" data-filter="unlocked">✅ Unlocked</button>
+        <button class="trophy-filter-btn" data-filter="locked">🔒 Locked</button>
+        <button class="trophy-filter-btn" data-filter="gameplay">🎮 Gameplay</button>
+        <button class="trophy-filter-btn" data-filter="combo">⚡ Combo</button>
+        <button class="trophy-filter-btn" data-filter="winning">🏆 Winning</button>
+        <button class="trophy-filter-btn" data-filter="multiplayer">⚔️ Multiplayer</button>
+        <button class="trophy-filter-btn" data-filter="special">💎 Special</button>
+      </div>
+
+      <!-- 18 Trophy Cards Grid -->
+      <div id="trophy-cards-grid" class="trophy-grid">
+        <!-- Dynamically populated by AchievementManager -->
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 12: PLAYER PROFILE & STATISTICS SCREEN
+         ==================================================================== -->
+    <section id="screen-profile" class="game-screen hidden">
+      <div class="screen-header-bar">
+        <div class="screen-title-group">
+          <span class="screen-badge-tag">VIRTUAL IDENTITY</span>
+          <h2 class="screen-main-title">PLAYER PROFILE &amp; STATS</h2>
+          <p class="screen-subtitle">Your persistent record, achievement milestones, and character wardrobe</p>
+        </div>
+        <button class="btn-arcade-back" data-action="back">
+          <span>⬅</span> <span>MAIN MENU</span>
+        </button>
+      </div>
+
+      <div class="auth-wrapper" style="max-width: 780px; margin: 0 auto; width: 100%;">
+        <!-- SUBVIEW A: AUTHENTICATED PROFILE & AVATAR WARDROBE -->
+        <div id="auth-profile-box" class="profile-card-wrapper hidden" style="width: 100%;">
+          <div class="profile-hero">
+            <div class="profile-avatar-large" id="profile-avatar-display">
+              <!-- Dynamically populated avatar -->
+            </div>
+            <div class="profile-hero-info">
+              <h2 class="profile-username" id="profile-username-display">Player</h2>
+              <div class="profile-badges">
+                <span class="badge-pill badge-session" id="badge-session-status">🟢 PHP Session: Active</span>
+                <span class="badge-pill badge-cookie" id="badge-cookie-status">🍪 Identity Cookie: Set</span>
+              </div>
+              <p class="text-muted" id="profile-member-since" style="font-size: 0.8rem; margin: 0;">Member of Banana Arcade</p>
+            </div>
+          </div>
+
+          <!-- Comprehensive Stats Grid -->
+          <div class="profile-stats-grid">
+            <div class="profile-stat-box">
+              <span class="pstat-val" id="profile-stat-highscore">0</span>
+              <span class="pstat-lbl">Personal Best</span>
+            </div>
+            <div class="profile-stat-box">
+              <span class="pstat-val" id="profile-stat-games">0</span>
+              <span class="pstat-lbl">Games Played</span>
+            </div>
+            <div class="profile-stat-box">
+              <span class="pstat-val" id="profile-stat-puzzles">0</span>
+              <span class="pstat-lbl">Puzzles Solved</span>
+            </div>
+          </div>
+
+          <!-- Wardrobe: In-Game Avatar Customization -->
+          <div class="wardrobe-box" style="margin-top: 1.5rem;">
+            <h3 class="wardrobe-title">🎨 Character Wardrobe (Change Avatar)</h3>
+            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 8px;">Select a new avatar to instantly update your persistent Virtual Identity:</p>
+            <div id="profile-avatar-selector"></div>
+            <div id="profile-wardrobe-msg" class="message-box hidden" style="margin-top: 10px;"></div>
+            <button id="btn-save-avatar" class="btn-auth-submit" style="margin-top: 10px;">SAVE AVATAR CHANGE</button>
+          </div>
+
+          <div style="margin-top: 1.5rem; display: flex; gap: 12px; justify-content: center;">
+            <button id="btn-profile-play" class="btn-submit-answer" data-screen-target="screen-mode-select" style="padding: 0.7rem 1.5rem;">
+              🎮 PLAY GAME
+            </button>
+            <button id="btn-profile-logout" class="btn-skip-puzzle" style="padding: 0.7rem 1.5rem; border-color: #ff4757; color: #ff6b81;">
+              SIGN OUT
+            </button>
+          </div>
+        </div>
+
+        <!-- SUBVIEW B: GUEST REGISTRATION / LOGIN BOX -->
+        <div id="auth-guest-box" class="auth-card" style="width: 100%;">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <span style="font-size: 2.5rem;">🔑</span>
+            <h3 style="font-size: 1.2rem; color: #fff; margin-top: 6px;">SAVE YOUR ARCADE LEGACY</h3>
+            <p class="text-muted" style="font-size: 0.85rem;">Create a virtual identity or log in to sync your high scores, trophies, and stats.</p>
+          </div>
+
+          <!-- Auth Tabs -->
+          <div class="auth-tabs">
+            <button id="tab-login" class="auth-tab active">Player Login</button>
+            <button id="tab-register" class="auth-tab">Register New Identity</button>
+          </div>
+
+          <!-- Feedback message -->
+          <div id="auth-message" class="message-box hidden"></div>
+
+          <!-- Form 1: Login -->
+          <form id="form-login">
+            <div class="form-group">
+              <label for="login-username">Player Username</label>
+              <input type="text" id="login-username" class="form-input" placeholder="e.g. PixelHero" required autocomplete="username">
+            </div>
+            <div class="form-group">
+              <label for="login-password">Password</label>
+              <input type="password" id="login-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-auth-submit">ENTER ARCADE</button>
+          </form>
+
+          <!-- Form 2: Register (With Interactive 10-Avatar Selector) -->
+          <form id="form-register" class="hidden">
+            <div class="form-group">
+              <label for="register-username">Choose Username</label>
+              <input type="text" id="register-username" class="form-input" placeholder="3-20 characters" required autocomplete="username">
+            </div>
+
+            <div id="register-avatar-picker" class="form-group"></div>
+
+            <div class="form-group">
+              <label for="register-password">Password (min 6 chars)</label>
+              <input type="password" id="register-password" class="form-input" placeholder="••••••••" required autocomplete="new-password">
+            </div>
+            <div class="form-group">
+              <label for="register-confirm">Confirm Password</label>
+              <input type="password" id="register-confirm" class="form-input" placeholder="••••••••" required autocomplete="new-password">
+            </div>
+            <button type="submit" class="btn-auth-submit">CREATE VIRTUAL IDENTITY</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 13: GAME SETTINGS SCREEN
+         ==================================================================== -->
+    <section id="screen-settings" class="game-screen hidden">
+      <div class="screen-header-bar">
+        <div class="screen-title-group">
+          <span class="screen-badge-tag">ARCADE PREFERENCES</span>
+          <h2 class="screen-main-title">GAME SETTINGS</h2>
+          <p class="screen-subtitle">Manage audio synthesizer, solo difficulty, display modes, and character identity</p>
+        </div>
+        <button class="btn-arcade-back" data-action="back">
+          <span>⬅</span> <span>MAIN MENU</span>
+        </button>
+      </div>
+
+      <div class="settings-card" style="max-width: 800px; margin: 0 auto; width: 100%;">
+        <div class="settings-grid">
+          <!-- Setting 1: Sound Effects Toggle -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">🔊 Sound Effects (SFX)</span>
+              <span class="setting-desc">Enable or mute retro synthesized arcade sounds (clock ticks, correct/wrong chimes, victory fanfares).</span>
+            </div>
+            <div class="setting-action">
+              <button id="settings-toggle-sound" class="btn-toggle-switch active">
+                <span class="switch-ball"></span>
+                <span id="settings-sound-text" class="switch-label">SOUND: ON</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Setting 2: Web Audio Synthesizer Test -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">🎵 Sound Test Station</span>
+              <span class="setting-desc">Test your browser Web Audio API synthesizer for all arcade sound profiles.</span>
+            </div>
+            <div class="setting-action sfx-test-buttons">
+              <button class="btn-sfx-test" data-sfx="correct">✨ Correct</button>
+              <button class="btn-sfx-test" data-sfx="wrong">💥 Mistake</button>
+              <button class="btn-sfx-test" data-sfx="gameover">🏁 Game Over</button>
+            </div>
+          </div>
+
+          <!-- Setting 3: Default Difficulty -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">⚡ Default Solo Difficulty</span>
+              <span class="setting-desc">Pre-select the difficulty when launching Solo Mode on the main menu.</span>
+            </div>
+            <div class="setting-action diff-selector-pills">
+              <button class="settings-diff-pill" data-diff="easy">🟢 Easy (45s)</button>
+              <button class="settings-diff-pill active" data-diff="medium">🟡 Medium (30s)</button>
+              <button class="settings-diff-pill" data-diff="hard">🔴 Hard (20s)</button>
+            </div>
+          </div>
+
+          <!-- Setting 4: Virtual Identity Character -->
+          <div class="setting-item">
+            <div class="setting-info">
+              <span class="setting-title">🎨 Character Wardrobe</span>
+              <span class="setting-desc">Customize your player avatar displayed in Solo Mode and Multiplayer 1v1 Arena.</span>
+            </div>
+            <div class="setting-action">
+              <button class="btn-primary" data-screen-target="screen-profile" style="padding: 8px 18px; font-size: 0.85rem;">
+                Open Avatar Wardrobe ➔
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         SCREEN 14: LEADERBOARD / HALL OF FAME SCREEN
+         ==================================================================== -->
+    <section id="screen-leaderboard" class="game-screen hidden">
+      <div class="screen-header-bar">
+        <div class="screen-title-group">
+          <span class="screen-badge-tag">HALL OF FAME</span>
+          <h2 class="screen-main-title">GLOBAL LEADERBOARD</h2>
+          <p class="screen-subtitle">Top 10 High Scores stored persistently in MySQL database</p>
+        </div>
+        <button class="btn-arcade-back" data-action="back">
+          <span>⬅</span> <span>MAIN MENU</span>
+        </button>
+      </div>
+
+      <div class="leaderboard-card" style="width: 100%;">
         <div class="leaderboard-header">
           <div>
-            <h2 class="view-heading">HALL OF FAME</h2>
-            <p class="text-muted" style="font-size: 0.85rem; margin-top: 4px;">Top 10 Global High Scores (Stored in MySQL)</p>
+            <h3 style="font-size: 1.1rem; color: #fff;">Global Top 10 Masters</h3>
+            <p class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">Scores verified by server backend</p>
           </div>
           <div class="leaderboard-header-actions">
             <div class="leaderboard-filters" id="leaderboard-filters">
@@ -816,146 +1143,28 @@
             </tbody>
           </table>
           <div id="leaderboard-empty" class="empty-state hidden">
-            <p>No high scores recorded yet! Be the first player to submit a score.</p>
+            <p>No high scores recorded yet! Play a solo match to enter the Hall of Fame.</p>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- ====================================================================
-         VIEW 3: AUTHENTICATION SECTION (Virtual Identity Management)
-         ==================================================================== -->
-    <section id="view-auth" class="view-section hidden">
-      <div class="auth-wrapper">
-
-        <!-- SUBVIEW A: GUEST AUTHENTICATION (Login & Register) -->
-        <div id="auth-guest-box" class="auth-card">
-          <!-- Auth Tabs -->
-          <div class="auth-tabs">
-            <button id="tab-login" class="auth-tab active">Player Login</button>
-            <button id="tab-register" class="auth-tab">Register New Identity</button>
-          </div>
-
-          <!-- Feedback message -->
-          <div id="auth-message" class="message-box hidden"></div>
-
-          <!-- Form 1: Login -->
-          <form id="form-login">
-            <div class="form-group">
-              <label for="login-username">Player Username</label>
-              <input type="text" id="login-username" class="form-input" placeholder="e.g. PixelHero" required autocomplete="username">
-            </div>
-            <div class="form-group">
-              <label for="login-password">Password</label>
-              <input type="password" id="login-password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
-            </div>
-            <button type="submit" class="btn-auth-submit">ENTER ARCADE</button>
-          </form>
-
-          <!-- Form 2: Register (With Interactive 10-Avatar Selector) -->
-          <form id="form-register" class="hidden">
-            <div class="form-group">
-              <label for="register-username">Choose Username</label>
-              <input type="text" id="register-username" class="form-input" placeholder="3-20 characters" required autocomplete="username">
-            </div>
-
-            <!-- [VIRTUAL IDENTITY] 10-Avatar Interactive Selector Container -->
-            <div id="register-avatar-picker" class="form-group"></div>
-
-            <div class="form-group">
-              <label for="register-password">Password (min 6 chars)</label>
-              <input type="password" id="register-password" class="form-input" placeholder="••••••••" required autocomplete="new-password">
-            </div>
-            <div class="form-group">
-              <label for="register-confirm">Confirm Password</label>
-              <input type="password" id="register-confirm" class="form-input" placeholder="••••••••" required autocomplete="new-password">
-            </div>
-            <button type="submit" class="btn-auth-submit">CREATE VIRTUAL IDENTITY</button>
-          </form>
-        </div>
-
-        <!-- SUBVIEW B: AUTHENTICATED PROFILE & AVATAR WARDROBE -->
-        <div id="auth-profile-box" class="profile-card-wrapper hidden" style="max-width: 580px; width: 100%;">
-          <div class="profile-hero">
-            <div class="profile-avatar-large" id="profile-avatar-display">
-              <!-- Dynamically populated avatar SVG -->
-            </div>
-            <div class="profile-hero-info">
-              <h2 class="profile-username" id="profile-username-display">Player</h2>
-              <div class="profile-badges">
-                <span class="badge-pill badge-session" id="badge-session-status">🟢 PHP Session: Active</span>
-                <span class="badge-pill badge-cookie" id="badge-cookie-status">🍪 Identity Cookie: Set</span>
-              </div>
-              <p class="text-muted" id="profile-member-since" style="font-size: 0.8rem; margin: 0;">Member of Banana Arcade</p>
-            </div>
-          </div>
-
-          <div class="profile-stats-grid">
-            <div class="profile-stat-box">
-              <span class="pstat-val" id="profile-stat-highscore">0</span>
-              <span class="pstat-lbl">Personal Best</span>
-            </div>
-            <div class="profile-stat-box">
-              <span class="pstat-val" id="profile-stat-games">0</span>
-              <span class="pstat-lbl">Games Played</span>
-            </div>
-            <div class="profile-stat-box">
-              <span class="pstat-val" id="profile-stat-puzzles">0</span>
-              <span class="pstat-lbl">Puzzles Solved</span>
-            </div>
-          </div>
-
-          <!-- Wardrobe: In-Game Avatar Customization -->
-          <div class="wardrobe-box">
-            <h3 class="wardrobe-title">🎨 Avatar Wardrobe (Change Character)</h3>
-            <p class="text-muted" style="font-size: 0.8rem; margin-bottom: 8px;">Select a new avatar to instantly update your persistent Virtual Identity:</p>
-            <div id="profile-avatar-selector"></div>
-            <div id="profile-wardrobe-msg" class="message-box hidden" style="margin-top: 10px;"></div>
-            <button id="btn-save-avatar" class="btn-auth-submit" style="margin-top: 10px;">SAVE AVATAR CHANGE</button>
-          </div>
-
-          <div style="margin-top: 1.5rem; display: flex; gap: 10px; justify-content: center;">
-            <button id="btn-profile-play" class="btn-submit-answer" style="padding: 0.6rem 1.25rem;">🎮 PLAY GAME</button>
-            <button id="btn-profile-logout" class="btn-skip-puzzle" style="padding: 0.6rem 1.25rem; border-color: #ff4757; color: #ff6b81;">SIGN OUT</button>
-          </div>
-        </div>
-
       </div>
     </section>
 
   </main>
 
   <!-- ======================================================================
-       MODAL: GAME OVER & LEADERBOARD PERSISTENCE
+       LEGACY MODAL FALLBACKS (Toggled via JavaScript if invoked directly)
        ====================================================================== -->
   <div id="modal-gameover" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header-icon">🏁</div>
       <h3 class="modal-title">TIME'S UP!</h3>
-      <p class="modal-subtitle">Great arcade run! Here is your performance summary:</p>
-
       <div class="stats-grid">
-        <div class="stat-item">
-          <span class="stat-label">Final Score</span>
-          <span id="modal-final-score" class="stat-value highlight">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Difficulty</span>
-          <span id="modal-difficulty-mode" class="stat-value">🟡 MEDIUM</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Solved</span>
-          <span id="modal-puzzles-solved" class="stat-value">0</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-label">Accuracy</span>
-          <span id="modal-accuracy" class="stat-value">0%</span>
-        </div>
+        <div class="stat-item"><span class="stat-label">Final Score</span><span id="modal-final-score" class="stat-value highlight">0</span></div>
+        <div class="stat-item"><span class="stat-label">Difficulty</span><span id="modal-difficulty-mode" class="stat-value">🟡 MEDIUM</span></div>
+        <div class="stat-item"><span class="stat-label">Solved</span><span id="modal-puzzles-solved" class="stat-value">0</span></div>
+        <div class="stat-item"><span class="stat-label">Accuracy</span><span id="modal-accuracy" class="stat-value">0%</span></div>
       </div>
-
-      <!-- Persistence / High Score status message -->
       <div id="modal-leaderboard-status" class="status-text"></div>
-
       <div class="modal-actions">
         <button id="btn-restart-game" class="btn-restart">PLAY AGAIN</button>
         <button id="btn-close-gameover" class="btn-dismiss">Close</button>
@@ -963,15 +1172,15 @@
     </div>
   </div>
 
-  <!-- ======================================================================
-       FOOTER
-       ====================================================================== -->
-  <footer class="footer-container">
-    <p>
-      <strong>Banana Arcade</strong> &bull; University Academic Software Engineering Project.
-      Integrated with official <a href="https://marcconrad.com/uob/banana/api.php?out=json" target="_blank" rel="noopener noreferrer">University Banana API</a>.
-    </p>
-  </footer>
+  <div id="mp-modal-battleover" class="modal-overlay hidden">
+    <div class="modal-card mp-gameover-card">
+      <div id="mp-modal-outcome-badge" class="gameover-title victory">🏆 VICTORY!</div>
+      <div class="modal-actions">
+        <button id="mp-modal-btn-rematch" class="btn-restart">🔄 Rematch</button>
+        <button id="mp-modal-btn-close" class="btn-dismiss">🏠 Return</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Dynamic Combo / Streak FX Overlay (Candy Crush Style) -->
   <div id="combo-fx-container" class="combo-fx-overlay"></div>
@@ -980,13 +1189,12 @@
   <div id="achievement-toast-container" class="achievement-toast-container"></div>
 
   <!-- Modular Client JavaScript -->
-  <script src="js/avatars.js?v=3.2"></script>
-  <script src="js/api.js?v=3.2"></script>
-  <script src="js/auth.js?v=3.2"></script>
-  <script src="js/combo.js?v=3.2"></script>
-  <script src="js/achievements.js?v=3.2"></script>
-  <script src="js/multiplayer.js?v=3.2"></script>
-  <script src="js/app.js?v=3.2"></script>
+  <script src="js/avatars.js?v=4.0"></script>
+  <script src="js/api.js?v=4.0"></script>
+  <script src="js/auth.js?v=4.0"></script>
+  <script src="js/combo.js?v=4.0"></script>
+  <script src="js/achievements.js?v=4.0"></script>
+  <script src="js/multiplayer.js?v=4.0"></script>
+  <script src="js/app.js?v=4.0"></script>
 </body>
 </html>
-
