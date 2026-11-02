@@ -1,40 +1,30 @@
 <?php
 /**
  * ============================================================================
- * [VERSION CONTROL]: Banana Arcade - PHP API Router (Entry Point)
- * Architecture: RESTful API Router (MVC Pattern, PHP 8+)
- * Course Assignment: Academic Full-Stack Web Application
- * Mandatory External API: https://marcconrad.com/uob/banana/api.php?out=json
+ * [ENTERPRISE REST ROUTER]: Banana Arcade Game
+ * Architecture: Front Controller / Gateway (Strict 3-Tier)
+ * Standards: PSR-4 Autoloading, Zero SQL, RESTful Endpoint Dispatcher
+ * University Coursework: CIS046-3 Software For Enterprise
  * ============================================================================
  */
 
-// Suppress HTML error output in JSON API responses
-error_reporting(E_ALL);
-ini_set('display_errors', 0);
-
-// Set JSON content type for all API responses
-header('Content-Type: application/json; charset=utf-8');
-
-// Enable Cross-Origin Resource Sharing (CORS) with Credentials Support
-if (isset($_SERVER['HTTP_ORIGIN'])) {
-    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
-    header('Access-Control-Allow-Credentials: true');
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
+// Global HTTP Header Definitions for RESTful JSON API
+header('Content-Type: application/json; charset=UTF-8');
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Credentials: true');
 
-// Handle CORS preflight requests
+// Preflight CORS handler
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(200);
     exit;
 }
 
-// [VIRTUAL IDENTITY]: Native PHP Session Initialization
+// Session configuration
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
-        'lifetime' => 7 * 86400,
+        'lifetime' => 86400 * 7,
         'path'     => '/',
         'httponly' => true,
         'samesite' => 'Lax'
@@ -43,24 +33,22 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // ============================================================================
-// Autoload project files (MVC Architecture)
+// PSR-4 Autoloader Registration (App\ namespace)
 // ============================================================================
-require_once __DIR__ . '/config/Database.php';
-require_once __DIR__ . '/helpers/JWT.php';
-require_once __DIR__ . '/middleware/AuthMiddleware.php';
-require_once __DIR__ . '/models/UserModel.php';
+require_once __DIR__ . '/autoload.php';
+
+// Fallback direct requires for legacy non-namespaced controllers if any
 require_once __DIR__ . '/models/ScoreModel.php';
 require_once __DIR__ . '/models/MultiplayerModel.php';
 require_once __DIR__ . '/models/AchievementModel.php';
 require_once __DIR__ . '/controllers/AuthController.php';
-require_once __DIR__ . '/controllers/GameController.php';
 require_once __DIR__ . '/controllers/LeaderboardController.php';
 require_once __DIR__ . '/controllers/MultiplayerController.php';
 require_once __DIR__ . '/controllers/AchievementController.php';
-require_once __DIR__ . '/services/BananaService.php';
+require_once __DIR__ . '/middleware/AuthMiddleware.php';
 
 // Initialize JWT with secret key for Virtual Identity authentication
-JWT::setSecret('banana_arcade_academic_jwt_secret_key_2026');
+\App\Helpers\JWT::setSecret('banana_arcade_academic_jwt_secret_key_2026');
 
 // ============================================================================
 // Parse the request route from the URI
@@ -76,7 +64,7 @@ if ($route === '') {
 $method = $_SERVER['REQUEST_METHOD'];
 
 // ============================================================================
-// Route Dispatcher - Maps HTTP endpoints to controller actions (Lazy Loaded)
+// Route Dispatcher - Maps HTTP endpoints to controller actions (Strict 3-Tier)
 // ============================================================================
 try {
     switch (true) {
@@ -102,13 +90,21 @@ try {
             (new AuthController())->getMe();
             break;
 
-        // [INTEROPERABILITY] Banana API Game Endpoints (/api/game)
+        // [INTEROPERABILITY: API 1 & 2] Banana Game Endpoints (/api/game)
         case $route === 'game/puzzle' && $method === 'GET':
-            (new GameController())->getPuzzle();
+            (new \App\Controllers\GameController())->getPuzzle();
             break;
 
         case $route === 'game/verify' && $method === 'POST':
-            (new GameController())->verifyAnswer();
+            (new \App\Controllers\GameController())->verifyAnswer();
+            break;
+
+        // [INTEROPERABILITY: API 2] Math Fact Endpoint (/api/math-fact)
+        case $route === 'math-fact' && $method === 'GET':
+            $num = isset($_GET['number']) ? (int)$_GET['number'] : rand(0, 9);
+            $fact = \App\Services\MathFactService::getMathFact($num);
+            http_response_code(200);
+            echo json_encode($fact);
             break;
 
         // [EVENT-DRIVEN MULTIPLAYER] 1v1 Versus Endpoints (/api/multiplayer)
@@ -146,14 +142,50 @@ try {
             (new AchievementController())->recordEvent();
             break;
 
-        // System Health Check & Assignment Metadata Endpoint
-        case $route === 'health' && $method === 'GET':
+        // [HEALTH & LIVE LATENCY BADGE] Complete Diagnostics & Health Check
+        case ($route === 'health' || $route === 'status') && $method === 'GET':
+            $bananaPing = \App\Services\BananaService::pingBananaApi();
+            $mathPing   = \App\Services\MathFactService::getMathFact(7);
+            
+            $dbHealthy = false;
+            try {
+                $pdo = \App\Config\Database::getInstance()->getConnection();
+                $dbHealthy = (bool)$pdo->query('SELECT 1');
+            } catch (Exception $e) {
+                $dbHealthy = false;
+            }
+
+            http_response_code(200);
             echo json_encode([
                 'status'                  => 'ONLINE',
                 'app'                     => 'Banana Arcade',
-                'version'                 => '1.0.0',
-                'backend'                 => 'PHP 8+ / MySQL (XAMPP Apache)',
-                'universityApiIntegrated' => 'https://marcconrad.com/uob/banana/api.php?out=json',
+                'version'                 => '2.0.0-Enterprise',
+                'backend'                 => 'PHP 8.0+ / MySQL (Strict 3-Tier MVC)',
+                'database'                => [
+                    'connected' => $dbHealthy,
+                    'driver'    => 'PDO MySQL (Singleton Pattern)'
+                ],
+                'external_apis'           => [
+                    'api_1' => [
+                        'name'       => 'University Banana Math API',
+                        'endpoint'   => \App\Services\BananaService::BANANA_API_ENDPOINT,
+                        'online'     => $bananaPing['online'] ?? false,
+                        'latency_ms' => $bananaPing['latency_ms'] ?? 0.0
+                    ],
+                    'api_2' => [
+                        'name'       => 'Numbers Math Trivia API',
+                        'endpoint'   => 'http://numbersapi.com',
+                        'online'     => $mathPing['success'] ?? false,
+                        'latency_ms' => $mathPing['latency_ms'] ?? 0.0,
+                        'sample'     => $mathPing['fact'] ?? ''
+                    ]
+                ],
+                'standards'               => [
+                    'psr4_autoloading' => true,
+                    'zero_sql_views'   => true,
+                    'virtual_identity' => 'Bcrypt + JWT + Avatars',
+                    'testing_suite'    => '/tests/run_tests.php'
+                ],
                 'timestamp'               => date('c')
             ]);
             break;
@@ -170,7 +202,6 @@ try {
             break;
     }
 } catch (Exception $e) {
-    // Global Centralized Error Handling
     error_log('[-] Unhandled server error: ' . $e->getMessage());
     http_response_code(500);
     echo json_encode([

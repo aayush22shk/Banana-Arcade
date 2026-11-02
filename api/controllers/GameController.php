@@ -2,39 +2,47 @@
 /**
  * ============================================================================
  * [INTEROPERABILITY]: Game Controller
- * Architecture: Controller Layer (MVC Pattern)
- * Purpose: Manages Banana puzzle generation, proxying the University API,
- *          and answer verification logic.
+ * Architecture: Controller Layer (Strict 3-Tier MVC Pattern)
+ * Purpose: Manages Banana puzzle generation, proxies the University API,
+ *          integrates the 2nd External Math Fact API, and verifies answers.
  * ============================================================================
  */
+
+namespace App\Controllers;
+
+use App\Services\BananaService;
+use App\Services\MathFactService;
+use App\Services\ScoreService;
+use App\Helpers\JWT;
+use Exception;
 
 class GameController
 {
     /**
-     * [INTEROPERABILITY] GET /api/game/puzzle
-     * PHP backend proxy route that queries the university Banana API,
-     * returning the puzzle image URL and solution verification data.
+     * [INTEROPERABILITY - API 1] GET /api/game/puzzle
+     * Proxies University Banana API, measuring round-trip latency in ms.
      */
     public function getPuzzle(): void
     {
         try {
-            // [INTEROPERABILITY] Call backend service querying University Banana Web Service
             $puzzle = BananaService::fetchBananaPuzzle();
 
             // Create a tamper-proof verification token containing puzzle answer & timestamp
             $puzzleToken = JWT::encode([
                 'solution'    => $puzzle['solution'],
                 'question'    => $puzzle['question'],
-                'generatedAt' => round(microtime(true) * 1000) // milliseconds for JS compatibility
+                'generatedAt' => round(microtime(true) * 1000)
             ], 300); // 5 minute expiry
 
             http_response_code(200);
             echo json_encode([
                 'success'     => true,
                 'question'    => $puzzle['question'],
-                'solution'    => $puzzle['solution'], // Provided for instant reactive client-side gameplay
-                'puzzleToken' => $puzzleToken,         // Signed token for optional server-side tamper-proof verification
+                'solution'    => $puzzle['solution'],
+                'puzzleToken' => $puzzleToken,
                 'isFallback'  => $puzzle['isFallback'] ?? false,
+                'latency_ms'  => $puzzle['latency_ms'] ?? 0.0,
+                'endpoint'    => BananaService::BANANA_API_ENDPOINT,
                 'message'     => ($puzzle['isFallback'] ?? false)
                     ? 'University API fallback activated'
                     : 'Puzzle fetched dynamically from University Banana API'
@@ -51,8 +59,8 @@ class GameController
     }
 
     /**
-     * POST /api/game/verify
-     * Verifies submitted answer against the signed puzzle verification token.
+     * [INTEROPERABILITY - API 2 & SCORING] POST /api/game/verify
+     * Verifies submitted answer, integrates Numbers API trivia fact, and calculates combo metrics.
      */
     public function verifyAnswer(): void
     {
@@ -60,6 +68,9 @@ class GameController
             $data        = json_decode(file_get_contents('php://input'), true);
             $puzzleToken = $data['puzzleToken'] ?? '';
             $answer      = $data['answer'] ?? null;
+            $streak      = isset($data['streak']) ? (int)$data['streak'] : 0;
+            $timeRemaining = isset($data['timeRemaining']) ? (float)$data['timeRemaining'] : 10.0;
+            $difficulty  = $data['difficulty'] ?? 'medium';
 
             if (empty($puzzleToken) || $answer === null) {
                 http_response_code(400);
@@ -86,13 +97,35 @@ class GameController
             $submitted = (int) $answer;
             $isCorrect = ($expected === $submitted);
 
-            http_response_code(200);
-            echo json_encode([
+            $response = [
                 'success'   => true,
                 'isCorrect' => $isCorrect,
                 'expected'  => $expected,
                 'submitted' => $submitted
-            ]);
+            ];
+
+            if ($isCorrect) {
+                $newStreak = $streak + 1;
+                $multiplier = ScoreService::getStreakMultiplier($newStreak);
+                $milestone  = ScoreService::getComboMilestone($newStreak);
+                $points     = ScoreService::calculatePoints(100, $timeRemaining, $difficulty, $newStreak);
+
+                // Fetch Second External API fact for this solution number
+                $mathFact = MathFactService::getMathFact($expected);
+
+                $response['newStreak']  = $newStreak;
+                $response['multiplier'] = $multiplier;
+                $response['milestone']  = $milestone;
+                $response['points']     = $points;
+                $response['mathFact']   = $mathFact;
+            } else {
+                $response['newStreak']  = 0;
+                $response['multiplier'] = 1.0;
+                $response['milestone']  = null;
+            }
+
+            http_response_code(200);
+            echo json_encode($response);
 
         } catch (Exception $e) {
             error_log('[-] Error in verifyAnswer controller: ' . $e->getMessage());
@@ -103,4 +136,9 @@ class GameController
             ]);
         }
     }
+}
+
+// Global class alias for backwards compatibility
+if (!class_exists('GameController', false)) {
+    class_alias(\App\Controllers\GameController::class, 'GameController');
 }

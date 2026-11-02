@@ -2,11 +2,18 @@
 /**
  * ============================================================================
  * [VIRTUAL IDENTITY]: User Data Access Object (DAO)
- * Architecture: Model Layer (MVC Pattern)
+ * Architecture: Model Layer (Strict 3-Tier MVC Pattern)
+ * Namespace: App\Models
  * Purpose: Manage user identity records, credentials, and verification queries
  *          using PDO prepared statements against MySQL database
  * ============================================================================
  */
+
+namespace App\Models;
+
+use App\Config\Database;
+use PDO;
+use Exception;
 
 class UserModel
 {
@@ -98,4 +105,9 @@ class UserModel
 
         return $user ?: null;
     }
+}
+
+// Global class alias for backwards compatibility
+if (!class_exists('UserModel', false)) {
+    class_alias(\App\Models\UserModel::class, 'UserModel');
 }

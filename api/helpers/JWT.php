@@ -3,10 +3,15 @@
  * ============================================================================
  * [VIRTUAL IDENTITY]: JSON Web Token (JWT) Helper
  * Architecture: Helper/Utility Layer
+ * Namespace: App\Helpers
  * Purpose: Cryptographic signing and verification of Virtual Identity tokens
- *          using HMAC-SHA256 (zero external dependencies)
+ *          using HMAC-SHA256 (RFC 7519 standard, zero external dependencies)
  * ============================================================================
  */
+
+namespace App\Helpers;
+
+use Exception;
 
 class JWT
 {
@@ -89,7 +94,7 @@ class JWT
     /**
      * Base64 URL-safe encoding (RFC 4648)
      */
-    private static function base64UrlEncode(string $data): string
+    public static function base64UrlEncode(string $data): string
     {
         return rtrim(strtr(base64_encode($data), '+/', '-_'), '=');
     }
@@ -97,7 +102,7 @@ class JWT
     /**
      * Base64 URL-safe decoding (RFC 4648)
      */
-    private static function base64UrlDecode(string $data): string
+    public static function base64UrlDecode(string $data): string
     {
         $remainder = strlen($data) % 4;
         if ($remainder) {
@@ -105,4 +110,9 @@ class JWT
         }
         return base64_decode(strtr($data, '-_', '+/'));
     }
+}
+
+// Global class alias for backwards compatibility
+if (!class_exists('JWT', false)) {
+    class_alias(\App\Helpers\JWT::class, 'JWT');
 }

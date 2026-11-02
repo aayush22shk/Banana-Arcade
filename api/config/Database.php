@@ -1,11 +1,18 @@
 <?php
 /**
  * ============================================================================
- * [VERSION CONTROL]: Database Connection Manager
- * Architecture: Model Layer (MVC Pattern)
- * Purpose: PDO MySQL connection singleton for persistent data storage (XAMPP)
+ * [DESIGN PATTERN]: Singleton Database Connection Manager
+ * Architecture: Data Access Layer / Configuration
+ * Pattern: Singleton Pattern (Strict Implementation)
+ * Purpose: Centralized thread-safe PDO connection pool to MySQL
  * ============================================================================
  */
+
+namespace App\Config;
+
+use PDO;
+use PDOException;
+use Exception;
 
 class Database
 {
@@ -21,6 +28,9 @@ class Database
     private string $password = '';
     private string $charset  = 'utf8mb4';
 
+    /**
+     * Private constructor enforces Singleton pattern
+     */
     private function __construct()
     {
         $dsn = "mysql:host={$this->host};dbname={$this->dbName};charset={$this->charset}";
@@ -110,10 +120,32 @@ class Database
     }
 
     /**
+     * Prevent object cloning for Singleton integrity
+     */
+    private function __clone()
+    {
+    }
+
+    /**
+     * Prevent deserialization for Singleton integrity
+     *
+     * @throws Exception
+     */
+    public function __wakeup()
+    {
+        throw new Exception("Cannot unserialize Singleton instance of Database.");
+    }
+
+    /**
      * Returns the active PDO connection
      */
     public function getConnection(): PDO
     {
         return $this->pdo;
     }
+}
+
+// Global class alias for backwards compatibility
+if (!class_exists('Database', false)) {
+    class_alias(\App\Config\Database::class, 'Database');
 }

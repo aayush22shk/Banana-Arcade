@@ -863,6 +863,50 @@ body {
   color: var(--color-orange);
 }
 
+.api-badge-secondary {
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  color: #38bdf8;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.math-trivia-pill {
+  display: none;
+  background: rgba(15, 23, 42, 0.95);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  border-radius: 6px;
+  padding: 8px 14px;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: fadeIn 0.3s ease;
+}
+
+.math-trivia-pill.visible {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.math-trivia-pill .trivia-icon {
+  font-size: 1.1rem;
+}
+
+.math-trivia-pill .trivia-source {
+  font-size: 0.68rem;
+  color: #facc15;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-left: auto;
+}
+
 .puzzle-stage {
   min-height: 220px;
   display: flex;

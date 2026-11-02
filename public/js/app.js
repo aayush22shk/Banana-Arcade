@@ -967,6 +967,10 @@ const App = {
     if (puzzleLoader) puzzleLoader.classList.remove('hidden');
     if (puzzleImg) puzzleImg.classList.add('opacity-0');
 
+    // Reset Second API Fact Banner
+    const factBanner = document.getElementById('math-fact-banner');
+    if (factBanner) factBanner.classList.remove('visible');
+
     try {
       // [INTEROPERABILITY] Fetch puzzle payload generated dynamically by University Banana API
       const res = await Api.game.getPuzzle();
@@ -974,8 +978,14 @@ const App = {
       this.state.currentPuzzle = res;
 
       if (apiStatusBadge) {
-        apiStatusBadge.textContent = res.isFallback ? 'API: Fallback Mode' : 'University Banana API: Active';
-        apiStatusBadge.className = `api-badge ${res.isFallback ? 'fallback' : 'online'}`;
+        if (res.isFallback) {
+          apiStatusBadge.innerHTML = '⚡ Banana API: Fallback';
+          apiStatusBadge.className = 'api-badge fallback';
+        } else {
+          const lat = res.latency_ms ? `${Math.round(res.latency_ms)}ms` : 'Active';
+          apiStatusBadge.innerHTML = `⚡ Banana API: <strong>${lat}</strong>`;
+          apiStatusBadge.className = 'api-badge online';
+        }
       }
 
       if (puzzleImg) {
@@ -1065,6 +1075,9 @@ const App = {
       this.showFeedback(`+${pointsEarned} PTS! ${this.state.multiplier > 1 ? `(${this.state.multiplier}x COMBO!)` : 'CORRECT!'} 🍌${bonusNote}`, 'success');
       this.triggerScreenEffect('correct');
 
+      // [INTEROPERABILITY: API 2] Display Educational Trivia Fact from Numbers API
+      this.displayMathFact(expected);
+
     } else {
       // INCORRECT ANSWER
       this.playSound('wrong');
@@ -1095,6 +1108,25 @@ const App = {
 
     // Fetch next Banana API puzzle immediately
     this.fetchNextPuzzle();
+  },
+
+  /**
+   * [INTEROPERABILITY: API 2] Fetches & displays mathematical fact for solved puzzle
+   */
+  async displayMathFact(number) {
+    const banner = document.getElementById('math-fact-banner');
+    const textEl = document.getElementById('math-fact-text');
+    if (!banner || !textEl) return;
+
+    try {
+      const factData = await Api.game.getMathFact(number);
+      if (factData && factData.fact) {
+        textEl.textContent = `Banana Math Property: ${factData.fact}`;
+        banner.classList.add('visible');
+      }
+    } catch (e) {
+      console.warn('[-] Notice: Second API fact lookup:', e);
+    }
   },
 
   /**

@@ -168,6 +168,24 @@ const Api = {
         method: 'POST',
         body: JSON.stringify({ puzzleToken, answer })
       });
+    },
+
+    /**
+     * [INTEROPERABILITY: API 2] Fetches educational math trivia from Second External API (Numbers API)
+     */
+    async getMathFact(number) {
+      return await Api.request(`/math-fact?number=${encodeURIComponent(number)}`, {
+        method: 'GET'
+      });
+    },
+
+    /**
+     * [LIVE LATENCY BADGE] Queries live health and round-trip millisecond latency of both external APIs
+     */
+    async getHealthStatus() {
+      return await Api.request('/health', {
+        method: 'GET'
+      });
     }
   },
 

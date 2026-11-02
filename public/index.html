@@ -412,9 +412,12 @@
         <!-- Real-time Feedback Banner -->
         <div id="feedback-banner" class="feedback-banner"></div>
 
-        <div class="crt-header">
+        <div class="crt-header" style="flex-wrap: wrap; gap: 8px;">
           <span class="crt-title">BANANA PUZZLE TERMINAL</span>
-          <span id="api-status-badge" class="api-badge online">University Banana API: Active</span>
+          <div style="display: flex; gap: 6px; align-items: center; margin-left: auto;">
+            <span id="api-status-badge" class="api-badge online" title="Primary University API Round-Trip Latency">⚡ Banana API: <span id="api-latency-val">...</span></span>
+            <span id="api2-status-badge" class="api-badge-secondary" title="Second External API: Numbers Math Facts">📚 Numbers API: Active</span>
+          </div>
         </div>
 
         <div class="puzzle-stage">
@@ -423,6 +426,13 @@
             <span>Fetching dynamic puzzle from University API...</span>
           </div>
           <img id="puzzle-image" class="puzzle-image opacity-0" src="" alt="University Banana Math Puzzle" />
+        </div>
+
+        <!-- Second External API Math Fact / Academic Trivia Banner -->
+        <div id="math-fact-banner" class="math-trivia-pill">
+          <span class="trivia-icon">💡</span>
+          <span id="math-fact-text" class="trivia-text">Solve the puzzle to reveal an interesting mathematical property!</span>
+          <span class="trivia-source">API #2: NUMBERS</span>
         </div>
       </div>
 
